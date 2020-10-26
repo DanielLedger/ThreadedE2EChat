@@ -10,13 +10,25 @@ The exact details of this are on the server's desc.md, but all messages here are
 and sent using a SEND packet. The base64 encode is to make parsing the message by the server a lot easier.
 
 ### Keystore
-There are two data storage systems used by the client:
+There are three data storage systems used by the client:
 a) A table of Username, User ID and SHA256(public key).
 b) A table of User ID, HMAC salt and encrypted master secret.
+c) A per-user encrypted message store: the advised way to do this is either `AES-256-CBC` or `AES-256-GCM`, depending on if authenticating stored messages is required.
 
 The master secrets are recovered using a master password which is entered on program start using the following algorithm:
 
-`SECRET = AES-CBC(key = HMAC-SHA256(password, salt), IV = salt, encrypted secret)`
+`SECRET = AES-CBC(key = HMAC-SHA256(hashed-password, salt), IV = salt, encrypted secret)`
+
+Encrypted messages are stored in batches of about 500 - 10,000 messages (doesn't matter, ensure it's fewer than 2^64 bytes for `AES-CBC`, which is unlikely), with a unique IV for each and a key calculated as `HMAC-SHA256(hashed-password, IV)`.
+
+The `hashed-password` should be calculated using the first method in this list that your platform can access, using paranoid-but-sensible parameters (generally look these up from no less than 3 years ago and, if unsure, double them):
+
+#####Algorithms:
+- `Argon2`
+- `scrypt`
+- `bcrypt`
+- `pbkdf_hmac_sha256`
+- `HMAC-SHA256` 
 
 ### New chat handshake
 When you want to message a user you haven't messaged yet, the following data is sent.
