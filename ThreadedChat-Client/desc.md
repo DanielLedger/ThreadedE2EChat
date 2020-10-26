@@ -21,7 +21,7 @@ The master secrets are recovered using a master password which is entered on pro
 
 Encrypted messages are stored in batches of about 500 - 10,000 messages (doesn't matter, ensure it's fewer than 2^64 bytes for `AES-CBC`, which is unlikely), with a unique IV for each and a key calculated as `HMAC-SHA256(hashed-password, IV)`.
 
-The `hashed-password` should be calculated using the first method in this list that your platform can access, using paranoid-but-sensible parameters (generally look these up from no less than 3 years ago and, if unsure, double them):
+The `hashed-password` should be calculated using the first method in this list that your platform can access, using paranoid-but-sensible parameters (generally look these up from no more than 2 years ago and, if unsure, double them):
 
 #####Algorithms:
 - `Argon2`
