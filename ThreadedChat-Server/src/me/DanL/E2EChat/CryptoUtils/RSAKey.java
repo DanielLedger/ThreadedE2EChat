@@ -2,7 +2,7 @@ package me.DanL.E2EChat.CryptoUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -13,8 +13,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Scanner;
 
@@ -23,6 +23,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.security.auth.DestroyFailedException;
+
 
 /**
  * A high-level interface for an RSA key.
@@ -44,8 +45,8 @@ public class RSAKey {
 	}
 	
 	/**
-	 * Loads an encoded RSA key from a file.
-	 * @param loadFrom - The file to load the key from. Key must be in PEM format.
+	 * Loads an  RSA key from an XML file.
+	 * @param loadFrom - The file to load the key from. Key must be in XML format.
 	 * @throws FileNotFoundException - If they key file couldn't be loaded.
 	 * @throws MalformedKeyFileException - If the file provided is in an incorrect format.
 	 */
@@ -57,86 +58,62 @@ public class RSAKey {
 		}
 		fileReader.close();
 		String rawData = sb.toString();
-		if (rawData.startsWith("-----BEGIN PUBLIC KEY-----")) {
-			loadPublicKey(rawData);
-		}
-		else if (rawData.startsWith("-----BEGIN PRIVATE KEY-----")){
-			loadPrivateKey(rawData);
-		}
-		else {
-			throw new MalformedKeyFileException();
-		}
+		loadKeysFromXML(rawData);
 		
 	}
 	
 	/**
-	 * Loads a key from an array of bytes.
-	 * @param keyBytes - Bytes of the encoded key.
-	 * @param privateKey - If true, this is a private key, If false, it's a public key.
+	 * Loads a key from a string
+	 * @param xmlData - The XML to load the key from
+	 * @throws MalformedKeyFileException 
 	 */
-	public RSAKey(byte[] keyBytes, boolean privateKey) {
-		if (privateKey) {
-			loadPrivateKeyBytes(keyBytes);
+	public RSAKey(String xmlData) throws MalformedKeyFileException {
+		loadKeysFromXML(xmlData);
+	}
+	
+	private String getDataBetweenTags(String dataSet, String tagName) {
+		String[] splitRes = dataSet.split("<\\/?" + tagName + ">");
+		if (splitRes.length <= 1) {
+			return "";
 		}
 		else {
-			loadPublicKeyBytes(keyBytes);
+			return splitRes[1];
 		}
 	}
 	
-	/**
-	 * Takes the PEM format key and loads it into a public key, that cannot perform decryption operations.
-	 * @param pemBase64
-	 * 
-	 */
-	private void loadPublicKey(String pemBase64) {
-		String rawBase64 = pemBase64.replace("-----BEGIN PUBLIC KEY-----", "")
-				.replace("-----END PUBLIC KEY-----", "")
-				.replace(System.lineSeparator(), "");
-		byte[] rawBytes = Base64.getDecoder().decode(rawBase64);
-		loadPublicKeyBytes(rawBytes);
-	}
-	
-	private void loadPublicKeyBytes(byte[] pKey) {
-		//Here's the stupid bit, because the javax.crypto package is a mess that still supports DES for some unknown reason.
-		try {
-			KeyFactory kf = KeyFactory.getInstance("RSA");
-			X509EncodedKeySpec x509PKSpec = new X509EncodedKeySpec(pKey);
-			pubKey = (RSAPublicKey) kf.generatePublic(x509PKSpec); //Actually sets the public key for this object.
-		} catch (NoSuchAlgorithmException e) {
-			//????
-			e.printStackTrace();
-		} catch (InvalidKeySpecException e) {
-			//Also should never happen
-			e.printStackTrace();
+	private void loadKeysFromXML(String xml) throws MalformedKeyFileException {
+		BigInteger modulus = null;
+		BigInteger publicExp = null;
+		BigInteger privExp = null;
+		String encodedN = getDataBetweenTags(xml, "Modulus");
+		String encodedE = getDataBetweenTags(xml, "Exponent");
+		String encodedD = getDataBetweenTags(xml, "D");
+		if (!encodedN.contentEquals("")) {
+			modulus = new BigInteger(Base64.getDecoder().decode(encodedN));
 		}
-	}
-	
-	/**
-	 * Takes the PEM format key and loads it into a private key, that can perform decryption operations.
-	 * @param pemBase64
-	 */
-	private void loadPrivateKey(String pemBase64) {
-		String rawBase64 = pemBase64.replace("-----BEGIN PRIVATE KEY-----", "")
-				.replace("-----END PRIVATE KEY-----", "")
-				.replace(System.lineSeparator(), "");
-		byte[] rawBytes = Base64.getDecoder().decode(rawBase64);
-		loadPrivateKeyBytes(rawBytes);
-	}
-	
-	private void loadPrivateKeyBytes(byte[] privateKey) {
-		//Here's the stupid bit (again), because the javax.crypto package is a mess that still supports DES for some unknown reason.
+		if (!encodedE.contentEquals("")) {
+			publicExp = new BigInteger(Base64.getDecoder().decode(encodedE));
+		}
+		if (!encodedD.contentEquals("")) {
+			privExp = new BigInteger(Base64.getDecoder().decode(encodedD));
+		}
+		if (modulus == null || publicExp == null) {
+			//Invalid key (since we'd expect at least one of these)
+			throw new MalformedKeyFileException();
+		}
+		RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(modulus, publicExp);
+		RSAPrivateKeySpec privKeySpec = null;
+		if (privExp != null) {
+			privKeySpec = new RSAPrivateKeySpec(modulus, privExp);
+		}
 		try {
 			KeyFactory kf = KeyFactory.getInstance("RSA");
-			X509EncodedKeySpec x509PKSpec = new X509EncodedKeySpec(privateKey);
-			privKey = (RSAPrivateKey) kf.generatePrivate(x509PKSpec); //Actually sets the private key for this object.
-			RSAPublicKeySpec pkGenerator = new RSAPublicKeySpec(privKey.getModulus(), BigInteger.valueOf(65537)); //Now add the public key.
-			pubKey = (RSAPublicKey) kf.generatePublic(pkGenerator);
-		} catch (NoSuchAlgorithmException e) {
-			//????
-			e.printStackTrace();
-		} catch (InvalidKeySpecException e) {
-			//Also should never happen
-			e.printStackTrace();
+			pubKey = (RSAPublicKey) kf.generatePublic(pubKeySpec);
+			if (privKeySpec != null) {
+				privKey = (RSAPrivateKey) kf.generatePrivate(privKeySpec);
+			}
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+			//Uh oh...
 		}
 	}
 	
@@ -247,32 +224,56 @@ public class RSAKey {
 	}
 	
 	/**
+	 * Saves the private key to a string, instead of to a file. Useful for key encryption.
+	 * @return
+	 */
+	public String savePrivateToString() {
+		BigInteger modulus = pubKey.getModulus();
+		BigInteger publicExp = pubKey.getPublicExponent();
+		BigInteger privExp = privKey.getPrivateExponent();
+		String encodedModulus = Base64.getEncoder().encodeToString(modulus.toByteArray());
+		String encodedPublicExp = Base64.getEncoder().encodeToString(publicExp.toByteArray());
+		String encodedPrivExp = Base64.getEncoder().encodeToString(privExp.toByteArray());
+		/*Since we don't care about compatibility too much, we can do quite a pathetic imitation
+		of the actual key save spec. Just so long as we can understand ourselves.*/
+		return "<Modulus>" + encodedModulus + "</Modulus>\n<Exponent>" + encodedPublicExp + "</Exponent>\n<D>" + encodedPrivExp + "</D>";
+	}
+	
+	/**
+	 * Another utility method for saving a public key to a string.
+	 * @return
+	 */
+	public String savePublicToString() {
+		BigInteger modulus = pubKey.getModulus();
+		BigInteger publicExp = pubKey.getPublicExponent();
+		String encodedModulus = Base64.getEncoder().encodeToString(modulus.toByteArray());
+		String encodedPublicExp = Base64.getEncoder().encodeToString(publicExp.toByteArray());
+		/*Since we don't care about comaptibility too much, we can do quite a pathetic imitation
+		of the actual key save spec. Just so long as we can understand ourselves.*/
+		return "<Modulus>" + encodedModulus + "</Modulus>\n<Exponent>" + encodedPublicExp + "</Exponent>";
+	}
+	
+	/**
 	 * Saves the public key to a file.
 	 * @param saveTo
 	 * @throws IOException 
 	 */
 	public void savePublic(File saveTo) throws IOException {
-		byte[] encKey = pubKey.getEncoded();
-		String base64 = Base64.getEncoder().encodeToString(encKey);
-		FileWriter fow = new FileWriter(saveTo);
-		fow.write("-----BEGIN PUBLIC KEY-----" + System.lineSeparator());
-		fow.write(base64 + System.lineSeparator());
-		fow.write("-----END PUBLIC KEY-----" + System.lineSeparator());
-		fow.close();
+		String rawData = savePublicToString();
+		FileOutputStream fos = new FileOutputStream(saveTo);
+		fos.write(rawData.getBytes());
+		fos.close();
 	}
 	
 	/**
-	 * Saves the private key to a file. Note that this will not encrypt the private key (this should be done).
+	 * Saves the private key to a file. Note that this will not encrypt the private key (this should be done in 99% of cases).
 	 * @param saveTo - The file to write to.
 	 * @throws IOException
 	 */
 	public void savePrivate(File saveTo) throws IOException {
-		byte[] encKey = privKey.getEncoded();
-		String base64 = Base64.getEncoder().encodeToString(encKey);
-		FileWriter fow = new FileWriter(saveTo);
-		fow.write("-----BEGIN PRIVATE KEY-----" + System.lineSeparator());
-		fow.write(base64 + System.lineSeparator());
-		fow.write("-----END PRIVATE KEY-----" + System.lineSeparator());
-		fow.close();
+		String rawData = savePrivateToString();
+		FileOutputStream fos = new FileOutputStream(saveTo);
+		fos.write(rawData.getBytes());
+		fos.close();
 	}
 }
