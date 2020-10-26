@@ -23,7 +23,7 @@ Encrypted messages are stored in batches of about 500 - 10,000 messages (doesn't
 
 The `hashed-password` should be calculated using the first method in this list that your platform can access, using paranoid-but-sensible parameters (generally look these up from no more than 2 years ago and, if unsure, double them):
 
-#####Algorithms:
+##### Algorithms:
 - `Argon2`
 - `scrypt`
 - `bcrypt`
