@@ -1,7 +1,6 @@
 package me.DanL.E2EChat.CryptoUtils;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -39,7 +38,7 @@ public class HMACUtils {
 	 * @return A hex representation of the HMAC.
 	 */
 	public static String hexHmac(byte[] data, byte[] key) {
-		return HMACUtils.bytesToHex(HMACUtils.hmac(data, key));
+		return BinaryUtils.bytesToHex(HMACUtils.hmac(data, key));
 	}
 	
 	/**
@@ -79,7 +78,7 @@ public class HMACUtils {
 	}
 	
 	public static void verifyHexHmac(byte[] data, byte[] key, String mac) throws InvalidMACException {
-		verifyHmac(data, key, HMACUtils.hexToBytes(mac));
+		verifyHmac(data, key, BinaryUtils.hexToBytes(mac));
 	}
 	
 	public static class InvalidMACException extends Throwable{
@@ -89,54 +88,5 @@ public class HMACUtils {
 		 */
 		private static final long serialVersionUID = -2592432690463034492L;
 		
-	}
-	
-	private static char[] lookupTable = {'0', '1', '2', '3', '4', '5', '6'
-			, '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
-	};
-	
-	/**
-	 * Converts bytes to a string of them in hex. Annoyingly, there's no good way to do this.
-	 * @param toHex - Bytes for converting.
-	 * @return - toHex in hex (base-16).
-	 */
-	public static String bytesToHex(byte[] toHex) {
-		char[] binHex = new char[toHex.length * 2];
-		for (int i = 0; i < toHex.length; i++) {
-			int hi = (toHex[i] & 0xf0);
-			int lo = (toHex[i] & 0x0f);
-			binHex[i] = lookupTable[hi >> 4];
-			binHex[i+1] = lookupTable[lo];
-		}
-		return String.copyValueOf(binHex);
-	}
-	
-	/**
-	 * Converts hex into an array of bytes.
-	 * @param hex - The string to convert.
-	 * @return - The bytes as an array of bytes.
-	 */
-	public static byte[] hexToBytes(String hex) {
-		byte[] outputBytes = new byte[hex.length()];
-		int ctr = 0;
-		byte binCache = 0;
-		boolean writeSide = false;
-		for (char c: hex.toCharArray()) {
-			int valOfHex = Arrays.binarySearch(lookupTable, c);
-			if (writeSide) {
-				//This hex digit equals the high end of a byte: so write it to the upper 4 bits, then write the byte to the array.
-				binCache = (byte) (binCache | (valOfHex & 0xf) << 4);
-				outputBytes[ctr] = binCache;
-				binCache = 0;
-				ctr++;
-			}
-			else {
-				//Write the value of this hex digit to the lower 4 bits of the byte.
-				binCache = (byte) (valOfHex & 0xf);
-			}
-			//Either way, invert which half of the byte we're setting
-			writeSide = !writeSide;
-		}
-		return outputBytes;
 	}
 }
