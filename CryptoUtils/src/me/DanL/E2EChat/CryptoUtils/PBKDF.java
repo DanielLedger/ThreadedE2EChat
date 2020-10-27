@@ -112,7 +112,6 @@ public class PBKDF {
 		hasher.setPassword(password);
 		hasher.setSalt(salt);
 		String rawOutput = hasher.hash();
-		System.out.println(rawOutput);
 		return BinaryUtils.hexToBytes(rawOutput);
 	}
 	
