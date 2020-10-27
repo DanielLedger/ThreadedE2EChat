@@ -27,22 +27,22 @@ Client: `CRYPT <public key>`
 Some control packets will need to be exchanged for the service to work:
 
 ###### Lookup user
-Client: `GET <name> <packet num> <token>`
+Client: `GET <name> <packet num> <token> <user id>`
 Server: `USER <user id>`
 
 OR:
 
-Client: `GETID <user id> <packet num> <token>`
+Client: `GETID <user id> <packet num> <token> <user id>`
 Server: `USER <name>`
 
 ###### Get public key
-Client: `KEY <user id> <packet num> <token>`
+Client: `KEY <user id> <packet num> <token> <user id>`
 Server: `PKEY <base64 blob>`
 
 ###### Check for messages (cryptography control and normal)
-Client: `MESSAGES <packet num> <token>`
+Client: `MESSAGES <packet num> <token> <user id>`
 Server: `LENGTH <incoming blob length>`
 Server: `MSG <payload>; MSG <payload>;...`
 
 ###### Send message to user (cryptography control and normal)
-Client: `SEND <payload> <target-user-id> <packet num> <token>`
+Client: `SEND <payload> <target-user-id> <packet num> <token> <user id>`
