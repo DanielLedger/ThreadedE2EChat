@@ -1,3 +1,4 @@
+package me.DanL.PacketManager;
 import java.net.Socket;
 
 public interface DataReceiver {
