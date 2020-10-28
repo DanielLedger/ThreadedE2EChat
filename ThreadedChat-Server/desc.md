@@ -12,7 +12,7 @@ Server: `CHALLENGE <base64 blob>`
 
 The CHALLENGE is a random binary token, encrypted with the public key the user shared with the server before.
 The user's token for requests where it is required is then calculated as follows:
-`HMAC-SHA256(challenge-token || SHA256(payload), packet-num);`
+`HMAC-SHA256(packet-num || SHA256(payload), challenge-token);`
 
 Where applicable, payload excludes any user IDs or similar: it is ONLY packet.split(" ")[1].
 
