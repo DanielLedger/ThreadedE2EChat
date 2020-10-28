@@ -27,6 +27,9 @@ Client: `HELLO <user id>`
 Server: `NEW`
 Client: `PERSON <name>`
 Client: `CRYPT <public key>`
+Server: `CHALLENGE <base64 blob>`
+
+Challenge is the same as above.
 
 ### Control packets
 Some control packets will need to be exchanged for the service to work:
