@@ -14,6 +14,9 @@ public class Authenticator {
 		storageDir = keyStorageDir;
 	}
 	
-	
+	public synchronized boolean packetAuthed(String payload, UUID user, int packetNum, byte[] authGiven) {
+		//TODO: Actually write authentication code.
+		return true;
+	}
 	
 }
