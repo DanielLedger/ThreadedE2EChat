@@ -34,6 +34,7 @@ public class Connection {
 	
 	/**
 	 * Waits until a connection is found, then calls the {@link DataReceiver#getData(Socket, String)} of the passed DataReceiver.
+	 * The method is called in a seperate thread, so exercise caution when handling objects etc.
 	 * @param listenPort - What port to listen on? Set above 1024 to avoid clashes.
 	 * @param maxDataLen - What's the maximum amount of data to read off the socket?
 	 * @param onPacketGet - The object we use to hold the method we call when we get a packet.
@@ -42,7 +43,15 @@ public class Connection {
 	public void onRecv(int listenPort, int maxDataLen, DataReceiver onPacketGet) throws IOException {
 		ServerSocket ss = new ServerSocket(listenPort);
 		Socket clientSock = ss.accept();
-		onPacketGet.getData(clientSock, new String(readDat(clientSock, maxDataLen)));
+		Runnable r = () -> {
+			try {
+				onPacketGet.getData(clientSock, new String(readDat(clientSock, maxDataLen)));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		};
+		Thread t = new Thread(r);
+		t.run();
 		ss.close();
 	}
 	
@@ -66,6 +75,7 @@ public class Connection {
 	
 	/**
 	 * Sends some data, and then calls a function on response.
+	 * Function is called in a seperate thread, so be careful!
 	 * @param ip - The IP to connect to.
 	 * @param port - The port to connect to.
 	 * @param maxDataLen - The maximum amount of data to receive.
@@ -78,7 +88,9 @@ public class Connection {
 		Socket commSoc = new Socket(ip, port);
 		this.send(commSoc, data);
 		String gotBack = new String(readDat(commSoc, maxDataLen));
-		onReplyGet.getData(commSoc, gotBack);
+		Runnable r = () -> onReplyGet.getData(commSoc, gotBack);
+		Thread t = new Thread(r);
+		t.run();
 		commSoc.close();
 	}
 	
