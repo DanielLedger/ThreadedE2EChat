@@ -16,7 +16,7 @@ public class Connection {
 	 * @throws IOException 
 	 * @throws UnknownHostException 
 	 */
-	public void send(String ip, int port, String data) throws UnknownHostException, IOException {
+	public static void send(String ip, int port, String data) throws UnknownHostException, IOException {
 		Socket commSoc = new Socket(ip, port);
 		send(commSoc, data);
 		commSoc.close();
@@ -28,7 +28,7 @@ public class Connection {
 	 * @param data
 	 * @throws IOException 
 	 */
-	public void send(Socket dataTransfer, String data) throws IOException {
+	public static void send(Socket dataTransfer, String data) throws IOException {
 		dataTransfer.getOutputStream().write(data.getBytes());
 	}
 	
@@ -40,7 +40,7 @@ public class Connection {
 	 * @param onPacketGet - The object we use to hold the method we call when we get a packet.
 	 * @throws IOException 
 	 */
-	public void onRecv(int listenPort, int maxDataLen, DataReceiver onPacketGet) throws IOException {
+	public static void onRecv(int listenPort, int maxDataLen, DataReceiver onPacketGet) throws IOException {
 		ServerSocket ss = new ServerSocket(listenPort);
 		Socket clientSock = ss.accept();
 		Runnable r = () -> {
@@ -62,7 +62,7 @@ public class Connection {
 	 * @return - The raw data from the socket.
 	 * @throws IOException 
 	 */
-	private byte[] readDat(Socket s, int maxLen) throws IOException {
+	public static byte[] readDat(Socket s, int maxLen) throws IOException {
 		InputStream bos = s.getInputStream();
 		byte[] rawData = new byte[maxLen];
 		int howMuch = bos.read(rawData);
@@ -84,9 +84,9 @@ public class Connection {
 	 * @throws IOException 
 	 * @throws UnknownHostException 
 	 */
-	public void sendRecv(String ip, int port, int maxDataLen, String data, DataReceiver onReplyGet) throws UnknownHostException, IOException {
+	public static void sendRecv(String ip, int port, int maxDataLen, String data, DataReceiver onReplyGet) throws UnknownHostException, IOException {
 		Socket commSoc = new Socket(ip, port);
-		this.send(commSoc, data);
+		send(commSoc, data);
 		String gotBack = new String(readDat(commSoc, maxDataLen));
 		Runnable r = () -> onReplyGet.getData(commSoc, gotBack);
 		Thread t = new Thread(r);
@@ -119,16 +119,15 @@ public class Connection {
 		if (io == null) {
 			System.exit(1);
 		}
-		Connection c = new Connection();
 		TestRecv dr = new TestRecv();
 		io.printf("%s", "Testing data send only to localhost at port 4444. Press enter to continue: ");
 		io.readLine();
-		c.send("localhost", 4444, "Hello!");
+		Connection.send("localhost", 4444, "Hello!");
 		io.printf("%s", "Testing data receive only. Program will continue when data received at port 4444:");
-		c.onRecv(4444, 1024, dr);
+		Connection.onRecv(4444, 1024, dr);
 		io.printf("%s", "Testing data sendRecv. Data will be sent to localhost at port 4444. Press enter to continue: ");
 		io.readLine();
-		c.sendRecv("localhost", 4444, 1024, "Hello!", dr);
+		Connection.sendRecv("localhost", 4444, 1024, "Hello!", dr);
 		io.printf("%s", "All tests passed! Terminating...");
 	}
 	
