@@ -17,6 +17,6 @@ while True:
     key = input("Enter the signing key (base64 encoded)> ")
     key = base64.b64decode(key)
     packetSig = sha256(packet).digest()
-    toSign = int.to_bytes(packetNum, 4, "big")
+    toSign = int.to_bytes(packetNum, 4, "big") + packetSig
     signature = sign(toSign, key)
     print("Packet signature: " + str(base64.b64encode(signature)))
