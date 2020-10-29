@@ -33,7 +33,7 @@ public class Authenticator {
 	
 
 	public synchronized boolean packetAuthed(String payload, UUID user, int packetNum, byte[] authGiven) {
-		int lastPacket = userLastPacketNum.get(user);
+		int lastPacket = userLastPacketNum.getOrDefault(user, 0);
 		if (packetNum <= lastPacket) {
 			Server.debugOutput("Packet number is lower than or equal to a previous packet number, assuming replay attack and rejecting.");
 			return false;
