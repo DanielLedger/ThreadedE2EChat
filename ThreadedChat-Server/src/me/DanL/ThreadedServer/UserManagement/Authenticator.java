@@ -61,7 +61,7 @@ public class Authenticator {
 		} catch (InvalidMACException e) {
 			return false;
 		}
-		userLastPacketNum.put(user, lastPacket);
+		userLastPacketNum.put(user, packetNum);
 		return true;
 	}
 	
