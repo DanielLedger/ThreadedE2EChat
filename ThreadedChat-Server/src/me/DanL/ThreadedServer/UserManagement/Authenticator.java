@@ -15,6 +15,7 @@ import me.DanL.E2EChat.CryptoUtils.HMACUtils;
 import me.DanL.E2EChat.CryptoUtils.HMACUtils.InvalidMACException;
 import me.DanL.E2EChat.CryptoUtils.RSAKey;
 import me.DanL.E2EChat.CryptoUtils.RSAKey.MalformedKeyFileException;
+import me.DanL.ThreadedServer.Primary.Server;
 
 public class Authenticator {
 	
@@ -34,6 +35,7 @@ public class Authenticator {
 	public synchronized boolean packetAuthed(String payload, UUID user, int packetNum, byte[] authGiven) {
 		int lastPacket = userLastPacketNum.get(user);
 		if (packetNum <= lastPacket) {
+			Server.debugOutput("Packet number is lower than or equal to a previous packet number, assuming replay attack and rejecting.");
 			return false;
 		}
 		byte[] toSign = new byte[36]; //4 bytes for the packet number + 32 for the hash.
@@ -54,11 +56,13 @@ public class Authenticator {
 			e.printStackTrace();
 		}
 		if (!sessionSecrets.containsKey(user)) {
+			Server.debugOutput("User hasn't initialised a session, rejecting.");
 			return false; //Null key will fail and a hardcoded default key would allow auth bypass.
 		}
 		try {
 			HMACUtils.verifyHmac(toSign, sessionSecrets.get(user), authGiven);
 		} catch (InvalidMACException e) {
+			Server.debugOutput("Packet MAC invalid, rejecting.");
 			return false;
 		}
 		userLastPacketNum.put(user, packetNum);
