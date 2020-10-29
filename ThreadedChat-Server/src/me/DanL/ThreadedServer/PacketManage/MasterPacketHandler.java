@@ -16,16 +16,20 @@ public class MasterPacketHandler implements DataReceiver {
 
 	@Override
 	public void getData(Socket source, String data) {
-		System.out.println(data);
+		Server.debugOutput("Got packet: " + data);
 		PacketParser parsedPacket = new PacketParser(data);
+		Server.debugOutput("Packet parse result:");
+		Server.debugOutput(parsedPacket.toString());
 		if (!parsedPacket.isAuthenticated()) { //Authenticated packets are implicitly valid.
 			//The packet isn't valid, so reject it silently.
+			Server.debugOutput("Unauthenticated packet, rejecting...");
 			terminateSock(source);
 			return;
 		}
 		try {
 			switch (parsedPacket.getType()) {
 			case CRYPT: //Packet should never be received without explanation.
+				Server.debugOutput("CRYPT packet received unexpectedly, exiting...");
 				break;
 			case GET:
 				break;
@@ -40,6 +44,7 @@ public class MasterPacketHandler implements DataReceiver {
 			case MESSAGES:
 				break;
 			case PERSON: //Packet should never be received without explanation.
+				Server.debugOutput("PERSON packet received unexpectedly, exiting...");
 				break;
 			case SEND:
 				break;
@@ -48,6 +53,7 @@ public class MasterPacketHandler implements DataReceiver {
 			}
 		}
 		catch (IOException e){
+			Server.debugOutput("ERROR!");
 			e.printStackTrace(); //This is a problem.
 		}
 		
@@ -75,6 +81,7 @@ public class MasterPacketHandler implements DataReceiver {
 		RSAKey userKey = Server.getAuthProvider().getUserPubKey(personUUID);
 		if (userKey == null) {
 			//New user (or sent a malformed public key last time).
+			Server.debugOutput("New user with ID: " + triggerPacket.getSender().toString());
 			Connection.send(s, "NEW");
 			//Now, await their response: if they vanish then it doesn't matter that much.
 			String person = new String(Connection.readDat(s, 1024));
@@ -89,6 +96,7 @@ public class MasterPacketHandler implements DataReceiver {
 						// Silently drop connection here.
 						return;
 					}
+					Server.debugOutput("Adding user...");
 					Server.getAuthProvider().addUser(personUUID, userKey, person);
 				}
 			}
@@ -97,6 +105,7 @@ public class MasterPacketHandler implements DataReceiver {
 		byte[] userSes = Server.getAuthProvider().resetUserSessionKey(personUUID);
 		System.out.println(Base64.getEncoder().encodeToString(userSes)); //This is a horrible idea, remove as soon as possible.
 		String encryptedPayload = Base64.getEncoder().encodeToString(userKey.encrypt(userSes));
+		Server.debugOutput("Sending user challenge...");
 		Connection.send(s, "CHALLENGE " + encryptedPayload);
 		//And done.
 	}
@@ -108,13 +117,16 @@ public class MasterPacketHandler implements DataReceiver {
 			lookup = UUID.fromString(strUid);
 		}
 		catch (IllegalArgumentException e) {
+			Server.debugOutput("Bad UUID provided, sending null key...");
 			Connection.send(s, "PKEY null");
 		}
 		RSAKey key = Server.getAuthProvider().getUserPubKey(lookup);
 		if (key == null) {
+			Server.debugOutput("Bad user provided, sending null key...");
 			Connection.send(s, "PKEY null");
 		}
 		else {
+			Server.debugOutput("Sending public key...");
 			Connection.send(s, "PKEY " + key.savePublicToString().replace(" ", "").replace("\n", "")); //Sends the user's public RSA key.
 		}
 	}
