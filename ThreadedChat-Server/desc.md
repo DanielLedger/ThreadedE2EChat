@@ -45,7 +45,7 @@ Server: `USER <name>`
 
 ###### Get public key
 Client: `KEY <user id> <packet num> <token> <user id>`
-Server: `PKEY <base64 blob>`
+Server: `PKEY <public key>`
 
 ###### Check for messages (cryptography control and normal)
 Client: `MESSAGES <packet num> <token> <user id>`
