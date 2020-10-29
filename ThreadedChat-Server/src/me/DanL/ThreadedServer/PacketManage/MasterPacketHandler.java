@@ -25,7 +25,7 @@ public class MasterPacketHandler implements DataReceiver {
 		}
 		try {
 			switch (parsedPacket.getType()) {
-			case CRYPT:
+			case CRYPT: //Packet should never be received without explanation.
 				break;
 			case GET:
 				break;
@@ -38,7 +38,7 @@ public class MasterPacketHandler implements DataReceiver {
 				break;
 			case MESSAGES:
 				break;
-			case PERSON:
+			case PERSON: //Packet should never be received without explanation.
 				break;
 			case SEND:
 				break;

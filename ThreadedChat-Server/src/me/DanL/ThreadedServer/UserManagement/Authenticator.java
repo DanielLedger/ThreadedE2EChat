@@ -3,16 +3,23 @@ package me.DanL.ThreadedServer.UserManagement;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.UUID;
 
+
 import me.DanL.E2EChat.CryptoUtils.BinaryUtils;
+import me.DanL.E2EChat.CryptoUtils.HMACUtils;
+import me.DanL.E2EChat.CryptoUtils.HMACUtils.InvalidMACException;
 import me.DanL.E2EChat.CryptoUtils.RSAKey;
 import me.DanL.E2EChat.CryptoUtils.RSAKey.MalformedKeyFileException;
 
 public class Authenticator {
 	
 	private HashMap<UUID,byte[]> sessionSecrets = new HashMap<UUID,byte[]>();
+	private HashMap<UUID,Integer> userLastPacketNum = new HashMap<UUID,Integer>();
 	private HashMap<String,UUID> uidLookup = new HashMap<String,UUID>();
 	
 	private File storageDir;
@@ -23,12 +30,38 @@ public class Authenticator {
 		storageDir.mkdirs();
 	}
 	
-	public Authenticator() {
-		// TODO Remove when no longer needed for testing.
-	}
 
 	public synchronized boolean packetAuthed(String payload, UUID user, int packetNum, byte[] authGiven) {
-		//TODO: Actually write authentication code.
+		int lastPacket = userLastPacketNum.get(user);
+		if (packetNum <= lastPacket) {
+			return false;
+		}
+		byte[] toSign = new byte[36]; //4 bytes for the packet number + 32 for the hash.
+		ByteBuffer bb = ByteBuffer.allocate(4);
+		bb.putInt(packetNum);
+		byte[] packetNumAsBytes = bb.array();
+		for (byte i = 0;i<4;i++) {
+			toSign[i] = packetNumAsBytes[i];
+		}
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA256");
+			byte[] sha = md.digest(payload.getBytes());
+			for (byte i = 0;i<32;i++) {
+				toSign[i+4] = sha[i];
+			}
+		} catch (NoSuchAlgorithmException e) {
+			//?????
+			e.printStackTrace();
+		}
+		if (!sessionSecrets.containsKey(user)) {
+			return false; //Null key will fail and a hardcoded default key would allow auth bypass.
+		}
+		try {
+			HMACUtils.verifyHmac(toSign, sessionSecrets.get(user), authGiven);
+		} catch (InvalidMACException e) {
+			return false;
+		}
+		userLastPacketNum.put(user, lastPacket);
 		return true;
 	}
 	
@@ -85,6 +118,7 @@ public class Authenticator {
 	public byte[] resetUserSessionKey(UUID who) {
 		byte[] newKey = BinaryUtils.getSalt(32); //New session token.
 		sessionSecrets.put(who, newKey);
+		userLastPacketNum.put(who, 0); //Resets the user's packet counter.
 		return newKey;
 	}
 }

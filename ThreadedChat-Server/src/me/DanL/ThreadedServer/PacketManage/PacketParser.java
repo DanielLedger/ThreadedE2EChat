@@ -67,6 +67,7 @@ public class PacketParser {
 			typeOf = PacketType.valueOf(type);
 		}
 		catch (IllegalArgumentException e) {
+			System.out.println("Invalid packet of type " + type + " sent!");
 			return; //Invalid packet type.
 		}
 		try {
