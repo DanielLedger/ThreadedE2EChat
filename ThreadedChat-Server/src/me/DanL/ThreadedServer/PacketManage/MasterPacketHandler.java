@@ -35,6 +35,7 @@ public class MasterPacketHandler implements DataReceiver {
 				handleHELLO(source, parsedPacket);
 				break;
 			case KEY:
+				handleKEY(source, parsedPacket);
 				break;
 			case MESSAGES:
 				break;
@@ -98,6 +99,24 @@ public class MasterPacketHandler implements DataReceiver {
 		String encryptedPayload = Base64.getEncoder().encodeToString(userKey.encrypt(userSes));
 		Connection.send(s, "CHALLENGE " + encryptedPayload);
 		//And done.
+	}
+	
+	private void handleKEY(Socket s, PacketParser trigger) throws IOException {
+		String strUid = trigger.payload();
+		UUID lookup = null;
+		try {
+			lookup = UUID.fromString(strUid);
+		}
+		catch (IllegalArgumentException e) {
+			Connection.send(s, "PKEY null");
+		}
+		RSAKey key = Server.getAuthProvider().getUserPubKey(lookup);
+		if (key == null) {
+			Connection.send(s, "PKEY null");
+		}
+		else {
+			Connection.send(s, "PKEY " + key.savePublicToString().replace(" ", "").replace("\n", "")); //Sends the user's public RSA key.
+		}
 	}
 
 }

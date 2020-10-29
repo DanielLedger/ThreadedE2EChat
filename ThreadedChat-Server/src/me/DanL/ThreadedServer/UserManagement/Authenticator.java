@@ -44,7 +44,7 @@ public class Authenticator {
 			toSign[i] = packetNumAsBytes[i];
 		}
 		try {
-			MessageDigest md = MessageDigest.getInstance("SHA256");
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			byte[] sha = md.digest(payload.getBytes());
 			for (byte i = 0;i<32;i++) {
 				toSign[i+4] = sha[i];
@@ -121,4 +121,5 @@ public class Authenticator {
 		userLastPacketNum.put(who, 0); //Resets the user's packet counter.
 		return newKey;
 	}
+	
 }
