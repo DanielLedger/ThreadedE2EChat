@@ -149,6 +149,7 @@ public class Authenticator {
 	 * @throws IOException - If saving the user's public key fails.
 	 */
 	public void addUser(UUID uid, RSAKey pubKey, String name) throws IOException {
+		name = name.replaceAll("\\W", ""); //Removes all non word characters from the name.
 		uidLookup.put(name, uid);
 		saveUserPubKey(uid, pubKey);
 		saveUsers();
@@ -177,7 +178,7 @@ public class Authenticator {
 				return e.getKey();
 			}
 		}
-		return null;
+		return "null";
 	}
 	
 	public UUID getUid(String who) {

@@ -35,6 +35,7 @@ public class MasterPacketHandler implements DataReceiver {
 				handleGET(source, parsedPacket);
 				break;
 			case GETID:
+				handleGETID(source, parsedPacket);
 				break;
 			case HELLO:
 				handleHELLO(source, parsedPacket);
@@ -48,6 +49,7 @@ public class MasterPacketHandler implements DataReceiver {
 				Server.debugOutput("PERSON packet received unexpectedly, exiting...");
 				break;
 			case SEND:
+				handleSEND(source, parsedPacket);
 				break;
 			default:
 				break;
@@ -136,6 +138,31 @@ public class MasterPacketHandler implements DataReceiver {
 		String nameToCheck = trigger.payload();
 		UUID result = Server.getAuthProvider().getUid(nameToCheck);
 		Connection.send(s, "USER " + result.toString());
+	}
+	
+	private void handleGETID(Socket s, PacketParser trigger) throws IOException {
+		try {
+			UUID u = UUID.fromString(trigger.payload());
+			String result = Server.getAuthProvider().getName(u);
+			Connection.send(s, "USER " + result);
+		}
+		catch (IllegalArgumentException e) {
+			Connection.send(s, "USER null"); //Invalid UUID looked up.
+		}
+	}
+	
+	private void handleSEND(Socket s, PacketParser trigger) {
+		String msgRaw = trigger.payload();
+		try {
+			String[] sp = msgRaw.split(" ");
+			UUID target = UUID.fromString(sp[1]);
+			String sent = sp[0];
+			Server.addPendingMsg(target, sent);
+		}
+		catch (IllegalArgumentException e) {
+			//Silently reject due to invalid ID.
+		}
+		
 	}
 
 }
