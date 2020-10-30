@@ -101,14 +101,12 @@ To make a Man-in-the-middle attack harder, an option is provided to verify that 
 
 4) Let `k = 0x1; o = 0x0`
 
-5) Run the following 5,000 times: `k = HMAC_SHA256(k, SHA256(s1||s2));o = HMAC_SHA256(o, k)`. This turns o into a nigh-on impossible to reverse 32 byte stream that depends entirely on s1 and s2.
+5) Run the following 5,000 times: `k = HMAC_SHA256(k, SHA256(s1||passcode||s2));o = HMAC_SHA256(o, k)`. This turns o into a nigh-on impossible to reverse 32 byte stream that depends entirely on s1 and s2.
 
 6) Calculate `n = HMAC_SHA256(o, passcode)`.
 
-7) Split n into upper 16 and lower 16 bytes. Generate two java version 4 UUIDs using them and output those. The output will look something like this:
+7) Split n into upper 16 and lower 16 bytes. Generate two java UUIDs using them and output those. The output will look something like this:
 
 `n1 = b97b82a8-5e2c-4faa-82f0-99a40affcdee`
 
 `n2 = 70555819-cf52-493a-bfaf-6748e2b823e9`
-
-The suggested way to do this is to simply write n1 and n2 as hex, and then replace the 13th hex character with a `4`, before adding dashes where appropriate.
