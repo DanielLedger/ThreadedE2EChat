@@ -15,7 +15,12 @@ public class Main {
 		Server.setAuthProvider(new Authenticator(keyStorageDirectory,new File("users.csv")));
 		Server.debugOutput("Listening for packets on port 4444.");
 		while (true) {
-			Connection.onRecv(4444, 65535, mph);
+			try {
+				Connection.onRecv(4444, 65535, mph);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
