@@ -3,6 +3,7 @@ package me.DanL.ThreadedServer.PacketManage;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Base64;
+import java.util.List;
 import java.util.UUID;
 
 import me.DanL.E2EChat.CryptoUtils.RSAKey;
@@ -44,6 +45,7 @@ public class MasterPacketHandler implements DataReceiver {
 				handleKEY(source, parsedPacket);
 				break;
 			case MESSAGES:
+				handleMESSAGES(source, parsedPacket);
 				break;
 			case PERSON: //Packet should never be received without explanation.
 				Server.debugOutput("PERSON packet received unexpectedly, exiting...");
@@ -163,6 +165,21 @@ public class MasterPacketHandler implements DataReceiver {
 			//Silently reject due to invalid ID.
 		}
 		
+	}
+	
+	private void handleMESSAGES(Socket s, PacketParser trigger) throws IOException {
+		List<String> pendingForClient = Server.getAndClearMsgs(trigger.getSender());
+		if (pendingForClient == null) {
+			//Nothing to send to the client
+			Connection.send(s, "LENGTH 0");
+			return;
+		}
+		String sendStr = "";
+		for (String msg: pendingForClient) {
+			sendStr += "MSG " + msg + ";";
+		}
+		Connection.send(s, "LENGTH " + sendStr.length());
+		Connection.send(s, sendStr);
 	}
 
 }
