@@ -32,6 +32,7 @@ public class MasterPacketHandler implements DataReceiver {
 				Server.debugOutput("CRYPT packet received unexpectedly, exiting...");
 				break;
 			case GET:
+				handleGET(source, parsedPacket);
 				break;
 			case GETID:
 				break;
@@ -129,6 +130,12 @@ public class MasterPacketHandler implements DataReceiver {
 			Server.debugOutput("Sending public key...");
 			Connection.send(s, "PKEY " + key.savePublicToString().replace(" ", "").replace("\n", "")); //Sends the user's public RSA key.
 		}
+	}
+	
+	private void handleGET(Socket s, PacketParser trigger) throws IOException {
+		String nameToCheck = trigger.payload();
+		UUID result = Server.getAuthProvider().getUid(nameToCheck);
+		Connection.send(s, "USER " + result.toString());
 	}
 
 }

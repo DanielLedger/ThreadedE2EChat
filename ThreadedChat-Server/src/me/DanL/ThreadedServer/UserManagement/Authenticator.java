@@ -180,5 +180,9 @@ public class Authenticator {
 		return null;
 	}
 	
+	public UUID getUid(String who) {
+		return uidLookup.get(who);
+	}
+	
 	
 }
