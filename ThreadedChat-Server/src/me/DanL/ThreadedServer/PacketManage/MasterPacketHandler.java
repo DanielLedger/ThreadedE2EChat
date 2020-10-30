@@ -97,7 +97,7 @@ public class MasterPacketHandler implements DataReceiver {
 						return;
 					}
 					Server.debugOutput("Adding user...");
-					Server.getAuthProvider().addUser(personUUID, userKey, person);
+					Server.getAuthProvider().addUser(personUUID, userKey, personPack.payload());
 				}
 			}
 		}

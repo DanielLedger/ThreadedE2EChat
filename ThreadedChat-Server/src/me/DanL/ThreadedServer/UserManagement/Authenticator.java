@@ -2,11 +2,14 @@ package me.DanL.ThreadedServer.UserManagement;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Scanner;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 
@@ -25,13 +28,49 @@ public class Authenticator {
 	
 	private File storageDir;
 	
+	private File userInfoFile;
 	
-	public Authenticator(File keyStorageDir) {
+	
+	public Authenticator(File keyStorageDir, File userInfoLoadFrom) {
 		storageDir = keyStorageDir;
 		storageDir.mkdirs();
+		userInfoFile = userInfoLoadFrom;
+		try {
+			loadUsers();
+		} catch (FileNotFoundException e) {
+			//Silently ignore
+		}
 	}
 	
+	/**
+	 * Loads the uidLookup table from disk.
+	 * @throws FileNotFoundException 
+	 */
+	public void loadUsers() throws FileNotFoundException {
+		Scanner fileReader = new Scanner(userInfoFile);
+		while (fileReader.hasNextLine()) {
+			//Assuming a name,UUID pair
+			String[] parts = fileReader.nextLine().trim().split(",");
+			String name = parts[0];
+			UUID uid = UUID.fromString(parts[1]); //Should always be valid.
+			uidLookup.put(name, uid);
+		}
+		fileReader.close();
+	}
 
+	/**
+	 * Saves the users file to disk.
+	 * @throws IOException
+	 */
+	public void saveUsers() throws IOException {
+		FileOutputStream fos = new FileOutputStream(userInfoFile);
+		for (Entry<String, UUID> e: uidLookup.entrySet()) {
+			String toWrite = e.getKey() + "," + e.getValue().toString() + "\n";
+			fos.write(toWrite.getBytes());
+		}
+		fos.close();
+	}
+	
 	public synchronized boolean packetAuthed(String payload, UUID user, int packetNum, byte[] authGiven) {
 		int lastPacket = userLastPacketNum.getOrDefault(user, 0);
 		if (packetNum <= lastPacket) {
@@ -112,6 +151,7 @@ public class Authenticator {
 	public void addUser(UUID uid, RSAKey pubKey, String name) throws IOException {
 		uidLookup.put(name, uid);
 		saveUserPubKey(uid, pubKey);
+		saveUsers();
 	}
 	
 	/**
@@ -125,5 +165,20 @@ public class Authenticator {
 		userLastPacketNum.put(who, 0); //Resets the user's packet counter.
 		return newKey;
 	}
+	
+	/**
+	 * Look up a UUID and return a name.
+	 * @param who - The UUID to look up.
+	 * @return The user's UUID, or null if they couldn't be found.
+	 */
+	public String getName(UUID who) {
+		for (Entry<String, UUID> e: uidLookup.entrySet()) {
+			if (e.getValue().equals(who)) {
+				return e.getKey();
+			}
+		}
+		return null;
+	}
+	
 	
 }

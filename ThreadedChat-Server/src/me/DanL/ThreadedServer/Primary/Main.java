@@ -12,7 +12,7 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 		MasterPacketHandler mph = new MasterPacketHandler();
 		File keyStorageDirectory = new File("crypt/keys");
-		Server.setAuthProvider(new Authenticator(keyStorageDirectory));
+		Server.setAuthProvider(new Authenticator(keyStorageDirectory,new File("users.csv")));
 		Server.debugOutput("Listening for packets on port 4444.");
 		while (true) {
 			Connection.onRecv(4444, 65535, mph);
