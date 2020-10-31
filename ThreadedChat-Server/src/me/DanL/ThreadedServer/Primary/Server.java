@@ -15,6 +15,8 @@ import me.DanL.ThreadedServer.UserManagement.Authenticator;
 
 public class Server {
 	private static Authenticator authProvider;
+	
+	private static File msgSaveFile;
 
 	private static HashMap<UUID, List<String>> userMsgs = new HashMap<UUID, List<String>>();
 	
@@ -55,8 +57,8 @@ public class Server {
 	 * Loads the pending messages for users from disk.
 	 * @throws FileNotFoundException 
 	 */
-	public static void loadPendingMsgs(File loadFrom) throws FileNotFoundException {
-		Scanner fileReader = new Scanner(loadFrom);
+	public static void loadPendingMsgs() throws FileNotFoundException {
+		Scanner fileReader = new Scanner(msgSaveFile);
 		while (fileReader.hasNextLine()) {
 			//Assuming a name,UUID pair
 			String[] parts = fileReader.nextLine().trim().split(",");
@@ -74,8 +76,8 @@ public class Server {
 	 * Saves pending messages to disk.
 	 * @throws IOException
 	 */
-	public static void savePendingMsgs(File saveTo) throws IOException {
-		FileOutputStream fos = new FileOutputStream(saveTo);
+	public static void savePendingMsgs() throws IOException {
+		FileOutputStream fos = new FileOutputStream(msgSaveFile);
 		for (Entry<UUID, List<String>> e: userMsgs.entrySet()) {
 			String toWrite = e.getKey() + "," + String.join(",", e.getValue().toArray(new String[1])) + "\n";
 			fos.write(toWrite.getBytes());
@@ -92,6 +94,11 @@ public class Server {
 		List<String> msgList = userMsgs.getOrDefault(toWho, new ArrayList<String>());
 		msgList.add(msg);
 		userMsgs.put(toWho, msgList);
+		try {
+			savePendingMsgs();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
@@ -101,5 +108,12 @@ public class Server {
 	 */
 	public static List<String> getAndClearMsgs(UUID toWho){
 		return userMsgs.remove(toWho);
+	}
+
+	/**
+	 * @param msgSaveFile the msgSaveFile to set
+	 */
+	public static void setMsgSaveFile(File msgSaveFile) {
+		Server.msgSaveFile = msgSaveFile;
 	}
 }

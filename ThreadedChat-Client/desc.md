@@ -32,9 +32,11 @@ The `hashed-password` should be calculated using the first method in this list t
 
 ### New chat handshake
 When you want to message a user you haven't messaged yet, the following data is sent.
-This data is encrypted using their public key.
+This data is encrypted differently for different parts:
+`<user-id>` is encrypted with the user's **private** key, to verify they are who they claim to be.
+`<master secret>` is encrypted with the user's **public** key.
 
-You: `INIT <user-id> <32 byte master secret>`
+You: `INIT <user-id> <32 byte master secret> `
 
 The client can then send as many messages as they wish using that master secret.
 

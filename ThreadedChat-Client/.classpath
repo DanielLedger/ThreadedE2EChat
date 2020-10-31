@@ -2,5 +2,8 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/home/daniel/Documents/Uni work/COMP1202 - Programming I/Space Cadets/ThreadedChat/argon2-0.1.jar"/>
+	<classpathentry kind="lib" path="/home/daniel/Documents/Uni work/COMP1202 - Programming I/Space Cadets/ThreadedChat/CryptoUtils.jar"/>
+	<classpathentry kind="lib" path="/home/daniel/Documents/Uni work/COMP1202 - Programming I/Space Cadets/ThreadedChat/PacketManager.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

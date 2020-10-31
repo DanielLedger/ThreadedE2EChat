@@ -171,14 +171,14 @@ public class MasterPacketHandler implements DataReceiver {
 		List<String> pendingForClient = Server.getAndClearMsgs(trigger.getSender());
 		if (pendingForClient == null) {
 			//Nothing to send to the client
-			Connection.send(s, "LENGTH 0");
+			Connection.send(s, "LENGTH 0\n");
 			return;
 		}
 		String sendStr = "";
 		for (String msg: pendingForClient) {
 			sendStr += "MSG " + msg + ";";
 		}
-		Connection.send(s, "LENGTH " + sendStr.length());
+		Connection.send(s, "LENGTH " + sendStr.length() + "\n");
 		Connection.send(s, sendStr);
 	}
 
