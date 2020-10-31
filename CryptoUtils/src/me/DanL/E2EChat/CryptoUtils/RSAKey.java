@@ -98,7 +98,7 @@ public class RSAKey {
 			privExp = new BigInteger(Base64.getDecoder().decode(encodedD));
 		}
 		if (modulus == null || publicExp == null) {
-			//Invalid key (since we'd expect at least one of these)
+			//Invalid key (since we'd expect both of these)
 			throw new MalformedKeyFileException();
 		}
 		RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(modulus, publicExp);
@@ -171,15 +171,16 @@ public class RSAKey {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-			try {
-				privKey.destroy();
-			} catch (DestroyFailedException e) {
-				//This is bad but not the end of the world.
-				e.printStackTrace();
-			} //Securely delete the contents of the key from memory.
-			privKey = null;
 		}
+		try {
+			privKey.destroy();
+		} catch (DestroyFailedException e) {
+			//This is bad but not the end of the world.
+			e.printStackTrace();
+		} //Securely delete the contents of the key from memory.
+		privKey = null;
 	}
+	
 	
 	/**
 	 * Securely pads and encrypts a message msg.
@@ -197,6 +198,37 @@ public class RSAKey {
 			//These are all a problem.
 			e.printStackTrace();
 			return null;
+		}
+		
+	}
+	
+	/**
+	 * Permanently destroys the key. All future calls to most functions in this key
+	 * will probably throw a NullPointerException. This may be quite slow since it
+	 * generates a second keypair to overwrite the first in memory.
+	 */
+	public void burnKey() {
+		//Correctly destroy the private key.
+		if (privKey != null) {
+			try {
+				privKey.destroy();
+			} catch (DestroyFailedException e) {
+				e.printStackTrace();
+			}
+			privKey = null;
+		}
+		//Now, overwrite where the keys used to be in memory. Not sure if this will work, but worth a shot.
+		KeyPairGenerator gen;
+		try {
+			gen = KeyPairGenerator.getInstance("RSA");
+			gen.initialize(1024); //This doesn't need to be secure, it just needs to overwrite the key pairs in memory.
+			KeyPair kp = gen.generateKeyPair();
+			privKey = (RSAPrivateKey) kp.getPrivate();
+			pubKey = (RSAPublicKey) kp.getPublic();
+			privKey = null;
+			pubKey = null;
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
 		}
 		
 	}
