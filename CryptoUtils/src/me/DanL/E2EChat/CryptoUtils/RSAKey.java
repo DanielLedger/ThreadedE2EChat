@@ -58,17 +58,18 @@ public class RSAKey {
 		}
 		fileReader.close();
 		String rawData = sb.toString();
-		loadKeysFromXML(rawData);
+		loadKeysFromXML(rawData, false);
 		
 	}
 	
 	/**
 	 * Loads a key from a string
 	 * @param xmlData - The XML to load the key from
+	 * @param unsafe - Allow the key to be loaded, even if it doesn't have valid public key info?
 	 * @throws MalformedKeyFileException 
 	 */
-	public RSAKey(String xmlData) throws MalformedKeyFileException {
-		loadKeysFromXML(xmlData);
+	public RSAKey(String xmlData, boolean unsafe) throws MalformedKeyFileException {
+		loadKeysFromXML(xmlData, unsafe);
 	}
 	
 	private String getDataBetweenTags(String dataSet, String tagName) {
@@ -81,7 +82,7 @@ public class RSAKey {
 		}
 	}
 	
-	private void loadKeysFromXML(String xml) throws MalformedKeyFileException {
+	private void loadKeysFromXML(String xml, boolean unsafe) throws MalformedKeyFileException {
 		BigInteger modulus = null;
 		BigInteger publicExp = null;
 		BigInteger privExp = null;
@@ -97,20 +98,25 @@ public class RSAKey {
 		if (!encodedD.contentEquals("")) {
 			privExp = new BigInteger(Base64.getDecoder().decode(encodedD));
 		}
-		if (modulus == null || publicExp == null) {
+		if (!unsafe && (modulus == null || publicExp == null)) {
 			//Invalid key (since we'd expect both of these)
 			throw new MalformedKeyFileException();
 		}
-		RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(modulus, publicExp);
+		RSAPublicKeySpec pubKeySpec = null;
 		RSAPrivateKeySpec privKeySpec = null;
 		if (privExp != null) {
 			privKeySpec = new RSAPrivateKeySpec(modulus, privExp);
 		}
+		if (publicExp != null) {
+			pubKeySpec = new RSAPublicKeySpec(modulus, publicExp);
+		}
 		try {
 			KeyFactory kf = KeyFactory.getInstance("RSA");
-			pubKey = (RSAPublicKey) kf.generatePublic(pubKeySpec);
 			if (privKeySpec != null) {
 				privKey = (RSAPrivateKey) kf.generatePrivate(privKeySpec);
+			}
+			if (pubKeySpec != null) {
+				pubKey = (RSAPublicKey) kf.generatePublic(pubKeySpec);
 			}
 		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
 			//Uh oh...
@@ -231,6 +237,24 @@ public class RSAKey {
 			e.printStackTrace();
 		}
 		
+	}
+	
+	/**
+	 * Inverts this private key (e <=> d)
+	 * @return The inverted key. Note that although a public key can be inverted, the results will be weird and unstable.
+	 */
+	public RSAKey invertKey() {
+		String xmlRep = savePrivateToString();
+		xmlRep = xmlRep.replace("<Exponent>", "<K>").replace("</Exponent>", "</K>")
+				.replace("<D>", "<Exponent>").replace("</D>", "</Exponent>")
+				.replace("<K>", "<D>").replace("</K>", "<K>");
+		try {
+			return new RSAKey(xmlRep, true);
+		} catch (MalformedKeyFileException e) {
+			//Seems it was doing checks I wasn't aware of.
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 	/**
