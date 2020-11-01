@@ -36,7 +36,7 @@ This data is encrypted differently for different parts:
 `<user-id>` is encrypted with the user's **private** key, to verify they are who they claim to be.
 `<master secret>` is encrypted with the user's **public** key.
 
-You: `INIT <user-id> <32 byte master secret> `
+You: `INIT <user-id> <cleartext-user-id> <32 byte master secret> `
 
 The client can then send as many messages as they wish using that master secret.
 
