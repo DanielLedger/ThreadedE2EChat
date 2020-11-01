@@ -6,12 +6,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.UUID;
 
 import me.DanL.E2EChat.CryptoUtils.AES;
 import me.DanL.E2EChat.CryptoUtils.BinaryUtils;
+import me.DanL.E2EChat.CryptoUtils.HMACUtils;
 import me.DanL.E2EChat.CryptoUtils.RSAKey;
 import me.DanL.E2EChat.CryptoUtils.RSAKey.MalformedKeyFileException;
 import me.DanL.PacketManager.Connection;
@@ -26,6 +30,8 @@ public class ChatNetClient {
 	
 	private String srvIp = "";
 	private int srvPort;
+	
+	private int packetNumber = 0;
 	
 	/**
 	 * Initialises the client that talks to the server.
@@ -116,6 +122,63 @@ public class ChatNetClient {
 			serverAuthMasterSecret = clientKey.decrypt(c); //Decrypts the challenge bytes.
 			System.out.println("Token: " + Base64.getEncoder().encodeToString(serverAuthMasterSecret)); //Remove once done testing.
 		}
+		packetNumber = 1; //Packet number is zero by default, so a start number of zero will be rejected.
+		s.close();
+	}
+	
+	/**
+	 * Signs a packet.
+	 * @param payload - The payload to sign.
+	 * @return - The base64 encoded signature of the packet.
+	 */
+	private String signPayload(String payload) {
+		byte[] toSign = new byte[36]; //4 bytes for the packet number + 32 for the hash.
+		ByteBuffer bb = ByteBuffer.allocate(4);
+		bb.putInt(packetNumber);
+		byte[] packetNumAsBytes = bb.array();
+		for (byte i = 0;i<4;i++) {
+			toSign[i] = packetNumAsBytes[i];
+		}
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] sha = md.digest(payload.getBytes());
+			for (byte i = 0;i<32;i++) {
+				toSign[i+4] = sha[i];
+			}
+		} catch (NoSuchAlgorithmException e) {
+			//?????
+			e.printStackTrace();
+		}
+		packetNumber++; //Very important, otherwise our packets will get rejected repeatedly.
+		return Base64.getEncoder().encodeToString(HMACUtils.hmac(toSign, serverAuthMasterSecret));
+	}
+	
+	/**
+	 * Takes the data we've been given and crafts it into a valid SEND packet.
+	 * @param rawData - The raw, base64 encoded data of the packet.
+	 * @param sendto - Who we send the data to.
+	 * @return
+	 */
+	private String createPacket(String rawData, UUID sendTo) {
+		//Format is SEND <data> <their UUID> <packet number> <token> <our UUID>
+		return "SEND " + rawData + " " + sendTo.toString() + " " + packetNumber + " " + signPayload(rawData + " " + sendTo.toString()) + " " + clientUid.toString(); 
+	}
+	
+	/**
+	 * Send a message to the client we want to communicate with.
+	 * @param data - The data to send.
+	 * @param to - Whom we are sending that data to.
+	 * @throws IOException - If something fails when sending.
+	 */
+	public void sendClientMessage(byte[] data, UUID to) throws IOException {
+		String encoded = Base64.getEncoder().encodeToString(data);
+		String packet = createPacket(encoded, to);
+		try {
+			Connection.send(srvIp, srvPort, packet);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
 	}
 	
 	/**

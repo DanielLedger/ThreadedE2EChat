@@ -77,6 +77,8 @@ public class Main {
 		}
 		//Finally, initialise the ChatNetworkClient
 		cnc.init("localhost", 4444, clientUid, name);
+		//Test
+		cnc.sendClientMessage("Hello World".getBytes(), UUID.randomUUID());
 	}
 	
 	/**
