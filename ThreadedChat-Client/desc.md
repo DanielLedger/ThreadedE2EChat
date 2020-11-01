@@ -63,7 +63,7 @@ A: `CTR MISSING <missing message number> <missing message number> ...`
 
 B will then send a series of packets that are either:
 
-B: `MSG_REPLAY <payload>`
+B: `MSG_REPLAY <counter> <payload>`
 Or, if B cannot recover the sent messages:
 
 B: `MSG REPLAY <counter> NOT FOUND`
@@ -78,12 +78,12 @@ This will prompt B to reply with the same exchange as if A had failed to receive
 
 Once counter can be safely incremented, it is, and the following calculation is done:
 
-`master_secret(ctr) = HMAC-SHA256(master_secret(ctr - 1), 0x0123456789abcdef)`
+`master_secret[ctr] = HMAC-SHA256(master_secret[ctr - 1], 0x0123456789abcdef)`
 
 This means that, even if the master secret is somehow compromised, previously intercepted messages are still unrecoverable forever
 
 ### Rekeying
-Clients should provide an option to rekey their exchanges if they believe their master secret was compromised, which triggers the following exchange. Note that the REKEY packet is encrypted in the same way an INIT packet is encrypted:
+Clients should provide an option to rekey their exchanges if they believe their master secret was compromised, which triggers the following exchange. Note that the REKEY packet is encrypted in the same way an INIT packet is encrypted, using the other user's public key:
 
 Rekeyer: `REKEY <new master secret>`
 
