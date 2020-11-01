@@ -33,7 +33,7 @@ public class Main {
 			clientSalt = BinaryUtils.getSalt(32);
 			char[] confPass;
 			do {
-				System.out.print("Please enter your master password. This needs to be strong as with it, an attacker can impersonate you perfectly.> ");
+				System.out.print("Please enter your master password. This needs to be strong, as with it, an attacker can impersonate you perfectly. In addition, you MUST be able to remember it: if you forget it, the password CANNOT BE RECOVERED.> ");
 				pass = c.readPassword();
 				System.out.print("Please confirm your password.> ");
 				confPass = c.readPassword();
