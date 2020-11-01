@@ -101,14 +101,11 @@ To make a Man-in-the-middle attack harder, an option is provided to verify that 
 
 3) Let `s1 = min(hMe, hOther)` and `s2 = max(hMe, hOther)`
 
-4) Let `k = 0x1; o = 0x0`
+4) Calculate `k = Argon2(s1, s2)` using agreed upon paranoid parameters.
 
-5) Run the following 5,000 times: `k = HMAC_SHA256(k, SHA256(s1||passcode||s2));o = HMAC_SHA256(o, k)`. This turns o into a nigh-on impossible to reverse 32 byte stream that depends entirely on s1 and s2.
+5) Calculate `o = Argon2(passcode, k)` using the same parameters as above.
 
-6) Calculate `n = HMAC_SHA256(o, passcode)`.
+6) Set `n = 0` and compute a version 3 UUID using `HMAC-SHA256(o, n)` as the byte array.
 
-7) Split n into upper 16 and lower 16 bytes. Generate two java UUIDs using them and output those. The output will look something like this:
-
-`n1 = b97b82a8-5e2c-4faa-82f0-99a40affcdee`
-
-`n2 = 70555819-cf52-493a-bfaf-6748e2b823e9`
+7) Allow the user to increment and decrement n as they please: for the same output value of `o` the entire sequence should be the same forever.
+Request that the user check at least 2 values of n and ideally more.
