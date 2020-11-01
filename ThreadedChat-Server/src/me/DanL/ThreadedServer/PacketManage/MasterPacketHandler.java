@@ -96,7 +96,7 @@ public class MasterPacketHandler implements DataReceiver {
 			if (personPack.isAuthenticated() && personPack.getType() == PacketType.PERSON) {
 				if (keyPack.isAuthenticated() && keyPack.getType() == PacketType.CRYPT) {
 					try {
-						userKey = new RSAKey(keyPack.payload());
+						userKey = new RSAKey(keyPack.payload(), false);
 					} catch (MalformedKeyFileException e) {
 						// Silently drop connection here.
 						return;
