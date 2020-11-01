@@ -73,7 +73,6 @@ public class Authenticator {
 	
 	public synchronized boolean packetAuthed(String payload, UUID user, int packetNum, byte[] authGiven) {
 		int lastPacket = userLastPacketNum.getOrDefault(user, 0);
-		userLastPacketNum.put(user, packetNum); //Increment instantly so that the signature changes with each packet
 		if (packetNum <= lastPacket) {
 			Server.debugOutput("Packet number is lower than or equal to a previous packet number, assuming replay attack and rejecting.");
 			return false;
@@ -105,6 +104,7 @@ public class Authenticator {
 			Server.debugOutput("Packet MAC invalid, rejecting.");
 			return false;
 		}
+		userLastPacketNum.put(user, packetNum); //Increment instantly so that the signature changes with each packet
 		return true;
 	}
 	
