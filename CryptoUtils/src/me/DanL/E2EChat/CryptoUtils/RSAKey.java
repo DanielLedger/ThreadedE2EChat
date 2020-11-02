@@ -248,7 +248,7 @@ public class RSAKey {
 		String xmlRep = savePrivateToString();
 		xmlRep = xmlRep.replace("<Exponent>", "<K>").replace("</Exponent>", "</K>")
 				.replace("<D>", "<Exponent>").replace("</D>", "</Exponent>")
-				.replace("<K>", "<D>").replace("</K>", "<K>");
+				.replace("<K>", "<D>").replace("</K>", "</D>");
 		try {
 			return new RSAKey(xmlRep, true);
 		} catch (MalformedKeyFileException e) {
