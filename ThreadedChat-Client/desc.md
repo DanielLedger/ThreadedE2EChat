@@ -10,10 +10,9 @@ The exact details of this are on the server's desc.md, but all messages here are
 and sent using a SEND packet. The base64 encode is to make parsing the message by the server a lot easier.
 
 ### Keystore
-There are three data storage systems used by the client:
-a) A table of Username, User ID and SHA256(public key).
-b) A table of User ID, HMAC salt and encrypted master secret.
-c) A per-user encrypted message store: the advised way to do this is either `AES-256-CBC` or `AES-256-GCM`, depending on if authenticating stored messages is required.
+There are two data storage systems used by the client:
+a) A table of User ID, Username, SHA256(public key) (base64 encoded), HMAC salt (base64 encoded), encrypted master secret (base64 encoded).
+b) A per-user encrypted message store: the advised way to do this is either `AES-256-CBC` or `AES-256-GCM`, depending on if authenticating stored messages is required.
 
 The master secrets are recovered using a master password which is entered on program start using the following algorithm:
 
