@@ -9,6 +9,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -331,5 +332,22 @@ public class RSAKey {
 		FileOutputStream fos = new FileOutputStream(saveTo);
 		fos.write(rawData.getBytes());
 		fos.close();
+	}
+	
+	/**
+	 * Gets the SHA256 hash of the public modulus of this key.
+	 * @return
+	 */
+	public byte[] getKeyHash() {
+		MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("SHA-256");
+			return md.digest(pubKey.getModulus().toByteArray());
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null; //??
+		
 	}
 }
