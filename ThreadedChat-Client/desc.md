@@ -12,7 +12,12 @@ and sent using a SEND packet. The base64 encode is to make parsing the message b
 ### Keystore
 There are two data storage systems used by the client:
 a) A table of User ID, Username, SHA256(public key) (base64 encoded), HMAC salt (base64 encoded), encrypted master secret (base64 encoded).
+
+<Cut for now to save time>
+
 b) A per-user encrypted message store: the advised way to do this is either `AES-256-CBC` or `AES-256-GCM`, depending on if authenticating stored messages is required.
+
+</Cut for now to save time>
 
 The master secrets are recovered using a master password which is entered on program start using the following algorithm:
 
@@ -56,6 +61,8 @@ The IV is 16 bytes long and randomly generated, and the GCM tag is also not trun
 
 The msg_count is a simple counter that tracks the amount of messages sent and received.
 
+<Cut for now to save time>
+
 If a message arrives with a counter that is higher than expected, the following exchange will be sent:
 
 A: `CTR MISSING <missing message number> <missing message number> ...`
@@ -75,11 +82,15 @@ A: `CTR EXCESS <A's counter value>`
 
 This will prompt B to reply with the same exchange as if A had failed to receive any messages.
 
+</Cut for now to save time>
+
 Once counter can be safely incremented, it is, and the following calculation is done:
 
 `master_secret[ctr] = HMAC-SHA256(master_secret[ctr - 1], 0x0123456789abcdef)`
 
 This means that, even if the master secret is somehow compromised, previously intercepted messages are still unrecoverable forever
+
+<Cut for now to save time>
 
 ### Rekeying
 Clients should provide an option to rekey their exchanges if they believe their master secret was compromised, which triggers the following exchange. Note that the REKEY packet is encrypted in the same way an INIT packet is encrypted, using the other user's public key:
@@ -91,6 +102,8 @@ Receiver: `REKEY ACCEPT`
 If they accept the rekey, or:
 
 Receiver: `REKEY DECLINE`
+
+</Cut for now to save time>
 
 ### Key verification
 To make a Man-in-the-middle attack harder, an option is provided to verify that the user's public keys are the same. This should be done as follows:
