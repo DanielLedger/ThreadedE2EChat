@@ -82,15 +82,12 @@ A: `CTR EXCESS <A's counter value>`
 
 This will prompt B to reply with the same exchange as if A had failed to receive any messages.
 
-</Cut for now to save time>
-
 Once counter can be safely incremented, it is, and the following calculation is done:
 
 `master_secret[ctr] = HMAC-SHA256(master_secret[ctr - 1], 0x0123456789abcdef)`
 
 This means that, even if the master secret is somehow compromised, previously intercepted messages are still unrecoverable forever
 
-<Cut for now to save time>
 
 ### Rekeying
 Clients should provide an option to rekey their exchanges if they believe their master secret was compromised, which triggers the following exchange. Note that the REKEY packet is encrypted in the same way an INIT packet is encrypted, using the other user's public key:
@@ -104,6 +101,16 @@ If they accept the rekey, or:
 Receiver: `REKEY DECLINE`
 
 </Cut for now to save time>
+
+<Implemented to save time>
+
+The per-message key for a message is now:
+
+`KEY = HMAC-SHA256(master_secret, msg_count)`
+
+This ensures that the messages still each have a unique key.
+
+</Implemented to save time>
 
 ### Key verification
 To make a Man-in-the-middle attack harder, an option is provided to verify that the user's public keys are the same. This should be done as follows:
