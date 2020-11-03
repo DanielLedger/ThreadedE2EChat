@@ -253,6 +253,10 @@ public class ChatNetClient {
 		}
 	}
 	
+	public String getUsername(UUID person) {
+		return "Bob"; //Not implemented yet: fairly quick implementation though.
+	}
+	
 	/**
 	 * Returns and wipes the unread messages buffer.
 	 * @return

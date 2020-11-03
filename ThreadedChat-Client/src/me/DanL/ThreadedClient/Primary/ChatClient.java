@@ -5,7 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;
 import java.util.HashMap;
 import java.util.Scanner;
@@ -23,9 +25,12 @@ import me.DanL.E2EChat.CryptoUtils.RSAKey;
  */
 public class ChatClient {
 	HashMap<UUID,byte[]> secretStore = new HashMap<UUID,byte[]>();
+	HashMap<UUID,Integer> msgCtr = new HashMap<UUID,Integer>(); //Currently not used while messages are ephemeral.
 	HashMap<UUID,String> nameLookup = new HashMap<UUID, String>();
 	HashMap<UUID,byte[]> pubkeyHash = new HashMap<UUID, byte[]>();
 	HashMap<UUID, byte[]> hmacSalts = new HashMap<UUID, byte[]>();
+	
+	HashMap<UUID,ArrayList<Message>> unreadToMe = new HashMap<UUID,ArrayList<Message>>();
 	
 	byte[] mKey;
 	
@@ -117,9 +122,36 @@ public class ChatClient {
 		networkHandle.sendClientMessage(initPacket.getBytes(), who);
 		//Now finally, add the user to our data storage and save our data storage.
 		pubkeyHash.put(who, userKey.getKeyHash());
-		nameLookup.put(who, "Bob"); //TODO: Get the user's name from the server.
+		nameLookup.put(who, networkHandle.getUsername(who)); //TODO: Get the user's name from the server.
 		hmacSalts.put(who, hmacSalt);
 		saveData();
+	}
+	
+	/**
+	 * Receives a message handshake from another user.
+	 * Verifies that everything is in order and then adds their master secret to our list.
+	 * @param trigger
+	 */
+	private void recvHandshake(String trigger) {
+		String[] parts = trigger.split(" ");
+		assert (parts.length == 4); //Packet in 4 parts: Type, Encrypted user ID, Cleartext user ID, Encrypted master secret.
+		assert (parts[0].contentEquals("INIT"));
+		UUID sender = UUID.fromString(parts[2]);
+		Decoder b64dec = Base64.getDecoder();
+		byte[] encUid = b64dec.decode(parts[1]);
+		byte[] encSecret = b64dec.decode(parts[3]);
+		RSAKey senderKey = networkHandle.getClientKey();
+		UUID decryptedUid = UUID.fromString(new String(senderKey.invertKey().decrypt(encUid))); //"Decrypts" the UUID with the user's public key.
+		if (!decryptedUid.equals(sender)) {
+			//Ignore because unverified.
+			return;
+		}
+		secretStore.put(sender, networkHandle.getClientKey().decrypt(encSecret)); //Decrypts the master secret and saves it.
+		//Now the cryptography is out of the way, do the other stuff.
+		nameLookup.put(sender, networkHandle.getUsername(sender));
+		byte[] hmacSalt = BinaryUtils.getSalt(16);
+		hmacSalts.put(sender, hmacSalt);
+		
 	}
 	
 }
