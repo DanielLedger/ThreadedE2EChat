@@ -51,7 +51,7 @@ In addition, the sender's public key should also be downloaded and stored in key
 ### Sending and receiving messages
 The packet structure of a message is very simple:
 
-`MSG <payload>`
+`MSG <payload> <from>`
 
 Each message is encrypted using the following algorithm:
 
