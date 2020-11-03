@@ -77,8 +77,26 @@ public class Main {
 		}
 		//Finally, initialise the ChatNetworkClient
 		cnc.init("localhost", 4444, clientUid, name);
-		//Test
-		cnc.sendClientMessage("Hello World".getBytes(), UUID.randomUUID());
+		DownloadLoop dl = new DownloadLoop(cnc);
+		Thread t = new Thread(dl);
+		t.start();
+		ChatClient cc = new ChatClient(masterKey, new File("userdata.csv"), cnc);
+		cc.addUser(UUID.fromString("39be59a0-495c-49c5-b376-5f06c9f5988b")); //This is a person we are not.
+	}
+	
+	private static class DownloadLoop implements Runnable{
+
+		
+		private ChatNetClient chatNetworker;
+		
+		DownloadLoop(ChatNetClient chatNet){
+			chatNetworker = chatNet;
+		}
+		
+		@Override
+		public void run() {
+			chatNetworker.retLoop();
+		}
 	}
 	
 	/**

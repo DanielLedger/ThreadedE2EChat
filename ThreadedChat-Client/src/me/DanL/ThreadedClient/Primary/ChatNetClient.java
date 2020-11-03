@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -32,6 +33,11 @@ public class ChatNetClient {
 	private int srvPort;
 	
 	private int packetNumber = 0;
+	
+	/**
+	 * Not just literal messages, also control messages.
+	 */
+	private volatile ArrayList<String> messages = new ArrayList<String>(); //Volatile because the program requires multiple threads.
 	
 	/**
 	 * Initialises the client that talks to the server.
@@ -170,7 +176,7 @@ public class ChatNetClient {
 	 * @param to - Whom we are sending that data to.
 	 * @throws IOException - If something fails when sending.
 	 */
-	public void sendClientMessage(byte[] data, UUID to) throws IOException {
+	public synchronized void sendClientMessage(byte[] data, UUID to) throws IOException { //Synchronized because trying to send two messages at once may lead to them both having invalid signatures.
 		String encoded = Base64.getEncoder().encodeToString(data);
 		String packet = createPacket(encoded, to);
 		try {
@@ -186,6 +192,93 @@ public class ChatNetClient {
 	 */
 	public UUID getClientUid() {
 		return clientUid;
+	}
+	
+	/**
+	 * Download a user's RSA key from the server.
+	 * @param who - The user who's key we're downloading.
+	 * @return - The user's RSA key.
+	 * @throws IOException - The connection to the server fails.
+	 */
+	public RSAKey getUserKey(UUID who) throws IOException {
+		String payload = who.toString();
+		String packet = "KEY " + payload + " " + packetNumber + " " + signPayload(payload) + " " + clientUid.toString();
+		Socket s = new Socket(srvIp, srvPort);
+		Connection.send(s, packet);
+		byte[] dat = Connection.readDat(s, 65535);
+		String[] respParts = new String(dat).split(" ");
+		if (respParts[0].contentEquals("PKEY")) {
+			try {
+				return new RSAKey(respParts[1], false);
+			} catch (MalformedKeyFileException e) {
+				return null;
+			}
+		}
+		else {
+			return null;
+		}
+		
+		
+	}
+
+	public RSAKey getClientKey() {
+		return clientKey;
+	}
+	
+	/**
+	 * Contact the server and request any messages we haven't yet seen. Stores them into the messages buffer.
+	 * @throws IOException 
+	 */
+	public void getUnreadMessages() throws IOException {
+		String packet = "MESSAGES " + packetNumber + " " + signPayload("") + " " + clientUid.toString();
+		Socket s = new Socket(srvIp, srvPort);
+		Connection.send(s, packet);
+		String len = new String(Connection.readDat(s, 1024)); //This message says how long the second message is.
+		int bufferLen = 0;
+		try {
+			bufferLen = Integer.parseInt(len.split(" ")[1]);
+		}
+		catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+			return; //Invalid
+		}
+		if (bufferLen == 0) {
+			//No new messages
+			return;
+		}
+		String messageList = new String(Connection.readDat(s, bufferLen));
+		//The messages are essentially semicolon separated lists of messages, so we can just split and add.
+		String[] msgs = messageList.replace("MSG", "").split(";");
+		for (String msg: msgs) {
+			messages.add(msg);
+		}
+	}
+	
+	/**
+	 * Returns and wipes the unread messages buffer.
+	 * @return
+	 */
+	public ArrayList<String> getAndClearMessages(){
+		@SuppressWarnings("unchecked")
+		ArrayList<String> bufferRet = (ArrayList<String>) messages.clone();
+		messages.clear();
+		return bufferRet;
+	}
+	
+	public void retLoop() {
+		while (true) {
+			//Forever checking new messages and downloading if found.
+			try {
+				Thread.sleep(1000);
+				getUnreadMessages();
+			} catch (InterruptedException e) {
+				//???
+				e.printStackTrace();
+			} //Checking every second.
+			catch (IOException e) {
+				//Probably bad.
+				e.printStackTrace();
+			}
+		}
 	}
 	
 }
