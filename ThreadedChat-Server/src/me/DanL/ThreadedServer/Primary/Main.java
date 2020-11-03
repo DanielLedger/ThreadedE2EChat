@@ -15,9 +15,10 @@ public class Main {
 		Server.setAuthProvider(new Authenticator(keyStorageDirectory,new File("users.csv")));
 		Server.setMsgSaveFile(new File("msgs.csv"));
 		Server.debugOutput("Listening for packets on port 4444.");
+		final int packetMaxLen = Integer.MAX_VALUE; //Make absolutely 100% sure we don't miss anything.
 		while (true) {
 			try {
-				Connection.onRecv(4444, 65535, mph);
+				Connection.onRecv(4444, packetMaxLen, mph);
 			}
 			catch (Exception e) {
 				e.printStackTrace();
