@@ -295,7 +295,7 @@ public class RSAKey {
 		}
 	}
 	
-	class InvalidSignatureException extends Exception{
+	public class InvalidSignatureException extends Exception{
 
 		/**
 		 * 
