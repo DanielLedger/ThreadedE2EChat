@@ -280,7 +280,7 @@ public class RSAKey {
 	public void verifyData(byte[] dat, byte[] sig) throws InvalidSignatureException {
 		Signature pubSig;
 		try {
-			pubSig = Signature.getInstance("SHA256withRSA");  //This is probably not great (since ideally it should use PSS padding, which I doubt it does).
+			pubSig = Signature.getInstance("SHA256withRSA");
 			pubSig.initVerify(pubKey);
 			pubSig.update(dat);
 			if (pubSig.verify(sig)) {
@@ -291,16 +291,17 @@ public class RSAKey {
 			}
 		}
 		catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+			e.printStackTrace();
 			throw new InvalidSignatureException();
 		}
 	}
 	
-	public class InvalidSignatureException extends Exception{
+	public static class InvalidSignatureException extends Throwable{
 
 		/**
 		 * 
 		 */
-		private static final long serialVersionUID = -1419042017405604838L;
+		private static final long serialVersionUID = -2592432690463034492L;
 		
 	}
 	

@@ -81,15 +81,21 @@ public class Main {
 		Thread t = new Thread(dl);
 		t.start();
 		ChatClient cc = new ChatClient(masterKey, new File("userdata.csv"), cnc);
-		System.out.print("Enter a UUID to add, or press enter to skip.> ");
+		System.out.print("Enter a UUID to send a message to, or enter to receive messages.> ");
 		String add = c.readLine();
 		if (!add.contentEquals("")) {
 			cc.addUser(UUID.fromString(add));
+			while (true) {
+				System.out.print("Type your message.> ");
+				cc.sendMsg(c.readLine(), UUID.fromString(add));
+			}
 		}
-		while (true) {
-			System.out.println("Press enter to check our messages.");
-			c.readLine();
-			cc.handleUnreads();
+		else {
+			while (true) {
+				System.out.println("Press enter to check our messages.");
+				c.readLine();
+				cc.handleUnreads();
+			}
 		}
 	}
 	

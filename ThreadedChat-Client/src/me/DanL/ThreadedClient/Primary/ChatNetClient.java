@@ -285,4 +285,15 @@ public class ChatNetClient {
 		}
 	}
 	
+	/**
+	 * Sends a message to the given user.
+	 * @param m
+	 * @throws IOException 
+	 */
+	public void sendMessage(Message m, UUID to) throws IOException {
+		String msgData = m.getSerialized();
+		String clientPacketStruct = "MSG " + msgData + " " + getClientUid();
+		sendClientMessage(clientPacketStruct.getBytes(), to);
+	}
+	
 }

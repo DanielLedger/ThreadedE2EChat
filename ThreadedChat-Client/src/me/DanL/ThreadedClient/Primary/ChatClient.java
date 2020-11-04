@@ -17,6 +17,8 @@ import me.DanL.E2EChat.CryptoUtils.AES;
 import me.DanL.E2EChat.CryptoUtils.BinaryUtils;
 import me.DanL.E2EChat.CryptoUtils.HMACUtils;
 import me.DanL.E2EChat.CryptoUtils.RSAKey;
+import me.DanL.E2EChat.CryptoUtils.RSAKey.InvalidSignatureException;
+
 
 /**
  * Handles letting the user chat to others.
@@ -113,9 +115,8 @@ public class ChatClient {
 		byte[] hmacSalt = BinaryUtils.getSalt(16); //Used as key-deriv salt and IV for secret storage.
 		//Now, download their public key from the server.
 		RSAKey userKey = networkHandle.getUserKey(who);
-		RSAKey inverseKey = networkHandle.getClientKey().invertKey(); //Inverts our key, so that we can use RSA private key encryption to verify our identity.
 		masterSecret = userKey.encrypt(masterSecret); //Deliberately overwrite masterSecret in memory.
-		byte[] proofOfId = inverseKey.encrypt(networkHandle.getClientUid().toString().getBytes());
+		byte[] proofOfId = networkHandle.getClientKey().signData(networkHandle.getClientUid().toString().getBytes());
 		Encoder b64enc = Base64.getEncoder();
 		String initPacket = "INIT " + b64enc.encodeToString(proofOfId) + " " + networkHandle.getClientUid().toString() + " " + b64enc.encodeToString(masterSecret);
 		//Send the user the INIT packet
@@ -131,19 +132,22 @@ public class ChatClient {
 	 * Receives a message handshake from another user.
 	 * Verifies that everything is in order and then adds their master secret to our list.
 	 * @param trigger
+	 * @throws IOException 
 	 */
-	private void recvHandshake(String trigger) {
+	private void recvHandshake(String trigger) throws IOException {
 		String[] parts = trigger.split(" ");
 		assert (parts.length == 4); //Packet in 4 parts: Type, Encrypted user ID, Cleartext user ID, Encrypted master secret.
 		assert (parts[0].contentEquals("INIT"));
 		UUID sender = UUID.fromString(parts[2]);
 		Decoder b64dec = Base64.getDecoder();
 		byte[] encUid = b64dec.decode(parts[1]);
+		System.out.println("Verifying signature of " + parts[1] + " against data of " + sender.toString() + ".");
 		byte[] encSecret = b64dec.decode(parts[3]);
-		RSAKey senderKey = networkHandle.getClientKey();
-		UUID decryptedUid = UUID.fromString(new String(senderKey.invertKey().decrypt(encUid))); //"Decrypts" the UUID with the user's public key.
-		if (!decryptedUid.equals(sender)) {
-			//Ignore because unverified.
+		RSAKey senderKey = networkHandle.getUserKey(sender);
+		try {
+			senderKey.verifyData(sender.toString().getBytes(), encUid);
+		} catch (InvalidSignatureException e) {
+			e.printStackTrace();
 			return;
 		}
 		secretStore.put(sender, networkHandle.getClientKey().decrypt(encSecret)); //Decrypts the master secret and saves it.
@@ -160,16 +164,50 @@ public class ChatClient {
 			String rawData = new String(Base64.getDecoder().decode(s.trim()));
 			String[] packet = rawData.split(" ");
 			if (packet[0].contentEquals("INIT")) {
-				recvHandshake(rawData);
+				try {
+					recvHandshake(rawData);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 			else if (packet[0].contentEquals("MSG")) {
 				Message msgForUser = new Message(packet[1]);
 				UUID from = UUID.fromString(packet[2]);
+				//Temporarily ditch the message queues.
+				/*
 				ArrayList<Message> msgs = unreadToMe.get(from);
 				msgs.add(msgForUser);
-				unreadToMe.put(from, msgs);
+				unreadToMe.put(from, msgs);*/
+				if (secretStore.containsKey(from)) {
+					String content = msgForUser.getMsgContent(secretStore.get(from));
+					System.out.println(networkHandle.getUsername(from) + "> " + content);
+				}
+				else {
+					System.out.println("Message from " + from.toString() + " that we are unable to decrypt.");
+				}
 			}
 		}
+		try {
+			saveData();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Send a message to a user.
+	 * @param content - The text of the message
+	 * @param to - The message to send.
+	 * @throws IOException - Server communication failed.
+	 */
+	public void sendMsg(String content, UUID to) throws IOException {
+		int currentUserCtr = msgCtr.getOrDefault(to, 0);
+		Message m = new Message(content, currentUserCtr, secretStore.get(to));
+		//Send the message
+		networkHandle.sendMessage(m, to);
+		//Now, increment the counter that we store, so we never reuse a key.
+		currentUserCtr++;
+		msgCtr.put(to, currentUserCtr);
 	}
 	
 }

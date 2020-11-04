@@ -58,6 +58,9 @@ public class Server {
 	 * @throws FileNotFoundException 
 	 */
 	public static void loadPendingMsgs() throws FileNotFoundException {
+		if (!msgSaveFile.exists()) {
+			return; //Nothing to load.
+		}
 		Scanner fileReader = new Scanner(msgSaveFile);
 		while (fileReader.hasNextLine()) {
 			//Assuming a name,UUID pair
