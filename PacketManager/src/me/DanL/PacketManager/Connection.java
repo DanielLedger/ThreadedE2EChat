@@ -43,19 +43,20 @@ public class Connection {
 	public static void onRecv(int listenPort, int maxDataLen, DataReceiver onPacketGet, boolean thread) throws IOException {
 		ServerSocket ss = new ServerSocket(listenPort);
 		Socket clientSock = ss.accept();
-		Runnable r = () -> {
-			try {
-				onPacketGet.getData(clientSock, new String(readDat(clientSock, maxDataLen)));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		};
+		
 		if (thread) {
+			Runnable r = () -> {
+				try {
+					onPacketGet.getData(clientSock, new String(readDat(clientSock, maxDataLen)));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			};
 			Thread t = new Thread(r);
 			t.run();
 		}
 		else {
-			r.run(); //Same thread.
+			onPacketGet.getData(clientSock, new String(readDat(clientSock, maxDataLen)));
 		}
 		ss.close();
 	}
