@@ -40,7 +40,7 @@ public class Connection {
 	 * @param onPacketGet - The object we use to hold the method we call when we get a packet.
 	 * @throws IOException 
 	 */
-	public static void onRecv(int listenPort, int maxDataLen, DataReceiver onPacketGet) throws IOException {
+	public static void onRecv(int listenPort, int maxDataLen, DataReceiver onPacketGet, boolean thread) throws IOException {
 		ServerSocket ss = new ServerSocket(listenPort);
 		Socket clientSock = ss.accept();
 		Runnable r = () -> {
@@ -50,8 +50,13 @@ public class Connection {
 				e.printStackTrace();
 			}
 		};
-		Thread t = new Thread(r);
-		t.run();
+		if (thread) {
+			Thread t = new Thread(r);
+			t.run();
+		}
+		else {
+			r.run(); //Same thread.
+		}
 		ss.close();
 	}
 	
@@ -124,7 +129,7 @@ public class Connection {
 		io.readLine();
 		Connection.send("localhost", 4444, "Hello!");
 		io.printf("%s", "Testing data receive only. Program will continue when data received at port 4444:");
-		Connection.onRecv(4444, 1024, dr);
+		Connection.onRecv(4444, 1024, dr, false);
 		io.printf("%s", "Testing data sendRecv. Data will be sent to localhost at port 4444. Press enter to continue: ");
 		io.readLine();
 		Connection.sendRecv("localhost", 4444, 1024, "Hello!", dr);

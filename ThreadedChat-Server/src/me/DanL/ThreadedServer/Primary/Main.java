@@ -19,7 +19,7 @@ public class Main {
 		final int packetMaxLen = 65535; //Turns out it allocates a buffer this size, so we need some limit.
 		while (true) {
 			try {
-				Connection.onRecv(4444, packetMaxLen, mph);
+				Connection.onRecv(4444, packetMaxLen, mph, false); //Disabling threading as a workaround: not recommended.
 			}
 			catch (Exception e) {
 				e.printStackTrace();
