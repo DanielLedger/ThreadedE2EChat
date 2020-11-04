@@ -106,9 +106,13 @@ public class ChatClient {
 	/**
 	 * Add a user to chat. Since we generate the secret and send it to them, they can also immediately have messages sent to them.
 	 * @param who
+	 * @param skipIfAdded - Skips the whole process if we have a session on record with this person already.
 	 * @throws IOException - If communication with the server fails.
 	 */
-	public void addUser(UUID who) throws IOException {
+	public void addUser(UUID who, boolean skipIfAdded) throws IOException {
+		if (hasSession(who) && skipIfAdded) {
+			return; //Do nothing.
+		}
 		byte[] masterSecret = BinaryUtils.getSalt(32); //The master secret for use when talking to someone.
 		//Add now, since we overwrite this later
 		secretStore.put(who, masterSecret);
@@ -208,6 +212,15 @@ public class ChatClient {
 		//Now, increment the counter that we store, so we never reuse a key.
 		currentUserCtr++;
 		msgCtr.put(to, currentUserCtr);
+	}
+	
+	/**
+	 * Checks to see if we have a session established with another user.
+	 * @param other - The user to check.
+	 * @return true if we have a session on record, false if we don't
+	 */
+	public boolean hasSession(UUID other) {
+		return secretStore.containsKey(other);
 	}
 	
 }

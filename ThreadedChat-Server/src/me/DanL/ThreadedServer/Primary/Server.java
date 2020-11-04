@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.util.Scanner;
 import java.util.UUID;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import me.DanL.ThreadedServer.UserManagement.Authenticator;
@@ -18,7 +20,8 @@ public class Server {
 	
 	private static File msgSaveFile;
 
-	private static HashMap<UUID, List<String>> userMsgs = new HashMap<UUID, List<String>>();
+	//We were getting some exceedingly odd issues with messages being lost to the aether despite being supposedly received, so this may help.
+	private static Map<UUID, List<String>> userMsgs = Collections.synchronizedMap(new HashMap<UUID, List<String>>());
 	
 	private static boolean printLogs = true;
 	
@@ -94,14 +97,16 @@ public class Server {
 	 * @param msg - What's the message. This better be base64 encoded else we will have issues.
 	 */
 	public static void addPendingMsg(UUID toWho, String msg) {
-		List<String> msgList = userMsgs.getOrDefault(toWho, new ArrayList<String>());
-		msgList.add(msg);
-		userMsgs.put(toWho, msgList);
-		try {
-			savePendingMsgs();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		synchronized(userMsgs) {
+			List<String> msgList = userMsgs.getOrDefault(toWho, new ArrayList<String>());
+			msgList.add(msg);
+			userMsgs.put(toWho, msgList);
+			try {
+				savePendingMsgs();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} //Lock needed for whole operation to prevent weird things from happening.
 	}
 	
 	/**
@@ -110,14 +115,16 @@ public class Server {
 	 * @return - The user's messages they need to be sent.
 	 */
 	public static List<String> getAndClearMsgs(UUID toWho){
-		List<String> removed = userMsgs.remove(toWho);
-		try {
-			savePendingMsgs();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		synchronized(userMsgs) {
+			List<String> removed = userMsgs.remove(toWho);
+			try {
+				savePendingMsgs();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return removed;
 		}
-		return removed;
 	}
 
 	/**

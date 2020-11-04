@@ -249,12 +249,13 @@ public class ChatNetClient {
 		//The messages are essentially semicolon separated lists of messages, so we can just split and add.
 		String[] msgs = messageList.replace("MSG", "").split(";");
 		for (String msg: msgs) {
+			System.out.println(msg);
 			messages.add(msg);
 		}
 	}
 	
 	public String getUsername(UUID person) {
-		return "Bob"; //Not implemented yet: fairly quick implementation though.
+		return "Bob"; //Not implemented yet: fairly quick implementation though to actually get from cache/server
 	}
 	
 	/**

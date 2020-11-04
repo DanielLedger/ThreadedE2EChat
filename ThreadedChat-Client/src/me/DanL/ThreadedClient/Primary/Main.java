@@ -84,7 +84,7 @@ public class Main {
 		System.out.print("Enter a UUID to send a message to, or enter to receive messages.> ");
 		String add = c.readLine();
 		if (!add.contentEquals("")) {
-			cc.addUser(UUID.fromString(add));
+			cc.addUser(UUID.fromString(add), true);
 			while (true) {
 				System.out.print("Type your message.> ");
 				cc.sendMsg(c.readLine(), UUID.fromString(add));
