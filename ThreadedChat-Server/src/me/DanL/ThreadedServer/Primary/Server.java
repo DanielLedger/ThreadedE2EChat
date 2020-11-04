@@ -23,7 +23,7 @@ public class Server {
 	//We were getting some exceedingly odd issues with messages being lost to the aether despite being supposedly received, so this may help.
 	private static Map<UUID, List<String>> userMsgs = Collections.synchronizedMap(new HashMap<UUID, List<String>>());
 	
-	private static boolean printLogs = true;
+	private static boolean printLogs = false;
 	
 	/**
 	 * @return the authProvider
@@ -98,6 +98,7 @@ public class Server {
 	 */
 	public static void addPendingMsg(UUID toWho, String msg) {
 		synchronized(userMsgs) {
+			System.out.println("Started adding message...");
 			List<String> msgList = userMsgs.getOrDefault(toWho, new ArrayList<String>());
 			msgList.add(msg);
 			userMsgs.put(toWho, msgList);
@@ -106,6 +107,7 @@ public class Server {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			System.out.println("Ended adding messages...");
 		} //Lock needed for whole operation to prevent weird things from happening.
 	}
 	
@@ -116,6 +118,7 @@ public class Server {
 	 */
 	public static List<String> getAndClearMsgs(UUID toWho){
 		synchronized(userMsgs) {
+			System.out.println("Started getting messages...");
 			List<String> removed = userMsgs.remove(toWho);
 			try {
 				savePendingMsgs();
@@ -123,6 +126,7 @@ public class Server {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			System.out.println("Ended getting messages...");
 			return removed;
 		}
 	}

@@ -92,9 +92,13 @@ public class Main {
 		}
 		else {
 			while (true) {
-				System.out.println("Press enter to check our messages.");
-				c.readLine();
 				cc.handleUnreads();
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
 	}

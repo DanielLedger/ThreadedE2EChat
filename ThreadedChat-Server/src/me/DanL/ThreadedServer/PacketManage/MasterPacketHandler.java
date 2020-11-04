@@ -180,6 +180,7 @@ public class MasterPacketHandler implements DataReceiver {
 		for (String msg: pendingForClient) {
 			sendStr += "MSG " + msg + ";";
 		}
+		System.out.println(sendStr);
 		Connection.send(s, "LENGTH " + sendStr.length() + "\n");
 		Connection.send(s, sendStr);
 	}
