@@ -11,6 +11,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Signature;
+import java.security.SignatureException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -241,21 +243,65 @@ public class RSAKey {
 	}
 	
 	/**
-	 * Inverts this private key (e <=> d)
-	 * @return The inverted key. Note that although a public key can be inverted, the results will be weird and unstable.
+	 * Signs data using the user's private key.
+	 * @param data - The data to sign.
+	 * @return - The signature.
 	 */
-	public RSAKey invertKey() {
-		String xmlRep = savePrivateToString();
-		xmlRep = xmlRep.replace("<Exponent>", "<K>").replace("</Exponent>", "</K>")
-				.replace("<D>", "<Exponent>").replace("</D>", "</Exponent>")
-				.replace("<K>", "<D>").replace("</K>", "</D>");
+	public byte[] signData(byte[] data) {
+		Signature privSig;
 		try {
-			return new RSAKey(xmlRep, true);
-		} catch (MalformedKeyFileException e) {
-			//Seems it was doing checks I wasn't aware of.
+			privSig = Signature.getInstance("SHA256withRSA");  //This is probably not great (since ideally it should use PSS padding, which I doubt it does).
+		} catch (NoSuchAlgorithmException e) {
+			// ??
 			e.printStackTrace();
 			return null;
 		}
+		try {
+			privSig.initSign(privKey);
+			privSig.update(data);
+			return privSig.sign();
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		} catch (SignatureException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	/**
+	 * Verifies a digital signature.
+	 * @param dat - The data to verify
+	 * @param sig - The signature of the data.
+	 * @throws InvalidSignatureException - If the signature couldn't be verified.
+	 */
+	public void verifyData(byte[] dat, byte[] sig) throws InvalidSignatureException {
+		Signature pubSig;
+		try {
+			pubSig = Signature.getInstance("SHA256withRSA");  //This is probably not great (since ideally it should use PSS padding, which I doubt it does).
+			pubSig.initVerify(pubKey);
+			pubSig.update(dat);
+			if (pubSig.verify(sig)) {
+				return;
+			}
+			else {
+				throw new InvalidSignatureException();
+			}
+		}
+		catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+			throw new InvalidSignatureException();
+		}
+	}
+	
+	class InvalidSignatureException extends Exception{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -1419042017405604838L;
+		
 	}
 	
 	/**
@@ -348,6 +394,5 @@ public class RSAKey {
 			e.printStackTrace();
 		}
 		return null; //??
-		
 	}
 }
