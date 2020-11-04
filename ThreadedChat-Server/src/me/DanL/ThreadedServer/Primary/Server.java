@@ -110,7 +110,14 @@ public class Server {
 	 * @return - The user's messages they need to be sent.
 	 */
 	public static List<String> getAndClearMsgs(UUID toWho){
-		return userMsgs.remove(toWho);
+		List<String> removed = userMsgs.remove(toWho);
+		try {
+			savePendingMsgs();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return removed;
 	}
 
 	/**

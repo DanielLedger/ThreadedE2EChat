@@ -169,10 +169,10 @@ public class MasterPacketHandler implements DataReceiver {
 	
 	private void handleMESSAGES(Socket s, PacketParser trigger) throws IOException {
 		List<String> pendingForClient = Server.getAndClearMsgs(trigger.getSender());
-		System.out.println("Sending messages...");
+		//System.out.println("Sending messages...");
 		if (pendingForClient == null) {
 			//Nothing to send to the client
-			System.out.println("Nothing to send to " + trigger.getSender());
+			//System.out.println("Nothing to send to " + trigger.getSender());
 			Connection.send(s, "LENGTH 0\n");
 			return;
 		}
