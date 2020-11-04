@@ -236,7 +236,7 @@ public class ChatNetClient {
 		String len = new String(Connection.readDat(s, 1024)); //This message says how long the second message is.
 		int bufferLen = 0;
 		try {
-			bufferLen = Integer.parseInt(len.split(" ")[1]);
+			bufferLen = Integer.parseInt(len.replace("\n", "").split(" ")[1]);
 		}
 		catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
 			return; //Invalid

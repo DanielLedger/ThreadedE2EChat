@@ -15,6 +15,7 @@ public class Main {
 		Server.setAuthProvider(new Authenticator(keyStorageDirectory,new File("users.csv")));
 		Server.setMsgSaveFile(new File("msgs.csv"));
 		Server.debugOutput("Listening for packets on port 4444.");
+		Server.loadPendingMsgs();
 		final int packetMaxLen = 65535; //Turns out it allocates a buffer this size, so we need some limit.
 		while (true) {
 			try {

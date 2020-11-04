@@ -81,7 +81,16 @@ public class Main {
 		Thread t = new Thread(dl);
 		t.start();
 		ChatClient cc = new ChatClient(masterKey, new File("userdata.csv"), cnc);
-		cc.addUser(UUID.fromString("39be59a0-495c-49c5-b376-5f06c9f5988b")); //This is a person we are not.
+		System.out.print("Enter a UUID to add, or press enter to skip.> ");
+		String add = c.readLine();
+		if (!add.contentEquals("")) {
+			cc.addUser(UUID.fromString(add));
+		}
+		while (true) {
+			System.out.println("Press enter to check our messages.");
+			c.readLine();
+			cc.handleUnreads();
+		}
 	}
 	
 	private static class DownloadLoop implements Runnable{

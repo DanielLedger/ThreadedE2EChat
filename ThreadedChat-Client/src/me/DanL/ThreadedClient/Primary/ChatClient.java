@@ -151,7 +151,25 @@ public class ChatClient {
 		nameLookup.put(sender, networkHandle.getUsername(sender));
 		byte[] hmacSalt = BinaryUtils.getSalt(16);
 		hmacSalts.put(sender, hmacSalt);
-		
+		pubkeyHash.put(sender, senderKey.getKeyHash());
+	}
+	
+	public void handleUnreads() {
+		for (String s: networkHandle.getAndClearMessages()) {
+			System.out.println(s);
+			String rawData = new String(Base64.getDecoder().decode(s.trim()));
+			String[] packet = rawData.split(" ");
+			if (packet[0].contentEquals("INIT")) {
+				recvHandshake(rawData);
+			}
+			else if (packet[0].contentEquals("MSG")) {
+				Message msgForUser = new Message(packet[1]);
+				UUID from = UUID.fromString(packet[2]);
+				ArrayList<Message> msgs = unreadToMe.get(from);
+				msgs.add(msgForUser);
+				unreadToMe.put(from, msgs);
+			}
+		}
 	}
 	
 }
