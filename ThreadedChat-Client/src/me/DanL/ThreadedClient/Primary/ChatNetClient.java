@@ -299,7 +299,7 @@ public class ChatNetClient {
 	}
 	
 	public void retLoop() {
-		while (true) {
+		while (!Main.isThreadsDie()) {
 			//Forever checking new messages and downloading if found.
 			try {
 				Thread.sleep(1000);

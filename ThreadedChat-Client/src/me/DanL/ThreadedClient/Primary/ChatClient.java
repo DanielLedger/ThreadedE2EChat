@@ -10,12 +10,15 @@ import java.util.Base64;
 import java.util.Base64.Decoder;
 import java.util.Base64.Encoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.UUID;
 
 import me.DanL.E2EChat.CryptoUtils.AES;
 import me.DanL.E2EChat.CryptoUtils.BinaryUtils;
 import me.DanL.E2EChat.CryptoUtils.HMACUtils;
+import me.DanL.E2EChat.CryptoUtils.PBKDF;
 import me.DanL.E2EChat.CryptoUtils.RSAKey;
 import me.DanL.E2EChat.CryptoUtils.RSAKey.InvalidSignatureException;
 
@@ -175,18 +178,9 @@ public class ChatClient {
 			else if (packet[0].contentEquals("MSG")) {
 				Message msgForUser = new Message(packet[1]);
 				UUID from = UUID.fromString(packet[2]);
-				//Temporarily ditch the message queues.
-				/*
 				ArrayList<Message> msgs = unreadToMe.get(from);
 				msgs.add(msgForUser);
-				unreadToMe.put(from, msgs);*/
-				if (secretStore.containsKey(from)) {
-					String content = msgForUser.getMsgContent(secretStore.get(from));
-					System.out.println(getUsername(from) + "> " + content);
-				}
-				else {
-					System.out.println("Message from " + from.toString() + " that we are unable to decrypt.");
-				}
+				unreadToMe.put(from, msgs);
 			}
 		}
 		try {
@@ -233,6 +227,63 @@ public class ChatClient {
 			}
 			return name;
 		}
+	}
+	
+	/**
+	 * Returns everyone this person is talking to.
+	 * @return - Everyone we have a session with.
+	 */
+	public Set<UUID> getUuids(){
+		return secretStore.keySet();
+	}
+	
+	/**
+	 * Gets the list of messages that we haven't yet read.
+	 * @param who - The user to view.
+	 * @return - A list of messages.
+	 */
+	public List<Message> getUnreadFrom(UUID who){
+		return unreadToMe.getOrDefault(who, new ArrayList<Message>());
+	}
+	
+	/**
+	 * Calculates a 32 byte key digest. Takes a bloody long time.
+	 * @param other - The UUID of the other person we're including in this digest.
+	 * @param code - The passcode we mix into the digest.
+	 * @return - The 32 byte digest.
+	 */
+	public byte[] getKeySummary(UUID other, String code) {
+		byte[] hMe = networkHandle.getClientKey().getKeyHash();
+		byte[] hOther = pubkeyHash.get(other);
+		byte[] k;
+		if (aSmallerB(hMe, hOther)) {
+			k = PBKDF.deriveKey(hMe, hOther);
+		}
+		else {
+			k = PBKDF.deriveKey(hOther, hMe);
+		}
+		return PBKDF.deriveKey(code.getBytes(), k);
+	}
+	
+	/**
+	 * Tests if byte stream a is smaller numerically than byte stream b.
+	 * @param a - A
+	 * @param b - B
+	 * @return - If A < B numerically.
+	 */
+	private boolean aSmallerB(byte[] a, byte[] b) {
+		if (a.length != b.length) {
+			return a.length < b.length;
+		}
+		for (int i = 0;i<a.length;i++) {
+			if (a[i] < b[i]) {
+				return true;
+			}
+			else if (a[i] > b[i]){
+				return false;
+			}
+		}
+		return false;
 	}
 	
 }

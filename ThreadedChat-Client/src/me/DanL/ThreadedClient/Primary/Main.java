@@ -6,7 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -16,6 +15,11 @@ import me.DanL.E2EChat.CryptoUtils.RSAKey.MalformedKeyFileException;
 
 public class Main {
 
+	/**
+	 * When true, all threads will kill themselves as fast as reasonably possible.
+	 */
+	private static boolean threadsDie = false;
+	
 	public static void main(String[] args) throws IOException {
 		//First off, see if we have an info file
 		File infoFile = new File("clientinfo.txt");
@@ -61,7 +65,6 @@ public class Main {
 		}
 		//One way or another, we have the info we need.
 		System.out.println("Deriving master key. This may take a few seconds...");
-		System.out.println(Base64.getEncoder().encodeToString(clientSalt));
 		byte[] masterKey = PBKDF.deriveKey(charsToBytes(pass), Arrays.copyOf(clientSalt, 32));
 		System.out.println("Attempting to load master key from file...");
 		ChatNetClient cnc = null; //Compile fails unless I put this???
@@ -81,6 +84,7 @@ public class Main {
 		Thread t = new Thread(dl);
 		t.start();
 		ChatClient cc = new ChatClient(masterKey, new File("userdata.csv"), cnc);
+		/*
 		System.out.print("Enter a UUID to send a message to, or enter to receive messages.> ");
 		String add = c.readLine();
 		if (!add.contentEquals("")) {
@@ -100,7 +104,11 @@ public class Main {
 					e.printStackTrace();
 				}
 			}
-		}
+		}*/
+		ChatUI userInt = new ChatUI(cc, name, clientUid);
+		while (!userInt.mainMenu(c)) {};
+		System.out.println("Bye!");
+		setThreadsDie(true);
 	}
 	
 	private static class DownloadLoop implements Runnable{
@@ -144,6 +152,20 @@ public class Main {
 			a[i] = 0;
 		}
 		return res;
+	}
+
+	/**
+	 * @return the threadsDie
+	 */
+	public static boolean isThreadsDie() {
+		return threadsDie;
+	}
+
+	/**
+	 * @param threadsDie the threadsDie to set
+	 */
+	private static void setThreadsDie(boolean threadsDie) {
+		Main.threadsDie = threadsDie;
 	}
 
 }
