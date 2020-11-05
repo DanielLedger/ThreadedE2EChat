@@ -108,7 +108,6 @@ public class MasterPacketHandler implements DataReceiver {
 		}
 		//Now, we generate the user a session token and send it to them
 		byte[] userSes = Server.getAuthProvider().resetUserSessionKey(personUUID);
-		System.out.println(Base64.getEncoder().encodeToString(userSes)); //This is a horrible idea, remove as soon as possible.
 		String encryptedPayload = Base64.getEncoder().encodeToString(userKey.encrypt(userSes));
 		Server.debugOutput("Sending user challenge...");
 		Connection.send(s, "CHALLENGE " + encryptedPayload);
@@ -159,7 +158,7 @@ public class MasterPacketHandler implements DataReceiver {
 			String[] sp = msgRaw.split(" ");
 			UUID target = UUID.fromString(sp[1]);
 			String sent = sp[0];
-			System.out.println("RECV.> " + sent);
+			//System.out.println("RECV.> " + sent);
 			Server.addPendingMsg(target, sent);
 		}
 		catch (IllegalArgumentException e) {
@@ -181,7 +180,7 @@ public class MasterPacketHandler implements DataReceiver {
 		for (String msg: pendingForClient) {
 			sendStr += "MSG " + msg + ";";
 		}
-		System.out.println("SEND> " + sendStr); //Messages are lost at some point between here... 
+		//System.out.println("SEND> " + sendStr); //Messages are lost at some point between here... 
 		//Connection.send(s, "LENGTH " + sendStr.length() + "\n"); //Ditching length packet altogether.
 		Connection.send(s, sendStr);
 	}

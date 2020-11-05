@@ -127,7 +127,6 @@ public class ChatNetClient {
 		if (resp[0].contentEquals("CHALLENGE")) {
 			byte[] c = Base64.getDecoder().decode(resp[1]);
 			serverAuthMasterSecret = clientKey.decrypt(c); //Decrypts the challenge bytes.
-			System.out.println("Token: " + Base64.getEncoder().encodeToString(serverAuthMasterSecret)); //Remove once done testing.
 		}
 		packetNumber = 1; //Packet number is zero by default, so a start number of zero will be rejected.
 		s.close();
@@ -260,19 +259,30 @@ public class ChatNetClient {
 		if (messageList.startsWith("LENGTH 0")) {
 			return; //Nothing here.
 		}
-		System.out.println("RAW> " + messageList); //And here.
 		//The messages are essentially semicolon separated lists of messages, so we can just split and add.
 		synchronized (messages) { //Might fix the weird as hell race condition we seem to get repeatedly.
 			String[] msgs = messageList.replace("MSG", "").split(";");
 			for (String msg: msgs) {
-				System.out.println("MSG> " + msg);
 				messages.add(msg);
 			}
 		}
 	}
 	
+	/**
+	 * Fetches a user's username from the server: this doesn't cache, so calls to this method should be cached.
+	 * @param person - Who we're looking up
+	 * @return - The user's username, or an error if server connection fails.
+	 */
 	public String getUsername(UUID person) {
-		return "Bob"; //Not implemented yet: fairly quick implementation though to actually get from cache/server
+		try {
+			Socket s = new Socket(srvIp, srvPort);
+			String packet = "GETID " + person.toString() + " " + packetNumber + " " + signPayload(person.toString()) + " " + clientUid.toString();
+			Connection.send(s, packet);
+			String[] resp = new String(Connection.readDat(s, 1024)).split(" ");
+			return resp[1];
+		} catch (IOException e) {
+			return "error.";
+		}
 	}
 	
 	/**

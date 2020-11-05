@@ -21,7 +21,7 @@ public class Server {
 	//We were getting some exceedingly odd issues with messages being lost to the aether despite being supposedly received, so this may help.
 	private static ConcurrentHashMap<UUID, List<String>> userMsgs = new ConcurrentHashMap<UUID, List<String>>();
 	
-	private static boolean printLogs = false;
+	private static boolean printLogs = true;
 	
 	/**
 	 * @return the authProvider

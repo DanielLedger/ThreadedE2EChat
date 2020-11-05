@@ -127,7 +127,7 @@ public class ChatClient {
 		networkHandle.sendClientMessage(initPacket.getBytes(), who);
 		//Now finally, add the user to our data storage and save our data storage.
 		pubkeyHash.put(who, userKey.getKeyHash());
-		nameLookup.put(who, networkHandle.getUsername(who)); //TODO: Get the user's name from the server.
+		nameLookup.put(who, getUsername(who));
 		hmacSalts.put(who, hmacSalt);
 		saveData();
 	}
@@ -145,7 +145,6 @@ public class ChatClient {
 		UUID sender = UUID.fromString(parts[2]);
 		Decoder b64dec = Base64.getDecoder();
 		byte[] encUid = b64dec.decode(parts[1]);
-		System.out.println("Verifying signature of " + parts[1] + " against data of " + sender.toString() + ".");
 		byte[] encSecret = b64dec.decode(parts[3]);
 		RSAKey senderKey = networkHandle.getUserKey(sender);
 		try {
@@ -156,7 +155,7 @@ public class ChatClient {
 		}
 		secretStore.put(sender, networkHandle.getClientKey().decrypt(encSecret)); //Decrypts the master secret and saves it.
 		//Now the cryptography is out of the way, do the other stuff.
-		nameLookup.put(sender, networkHandle.getUsername(sender));
+		nameLookup.put(sender, getUsername(sender));
 		byte[] hmacSalt = BinaryUtils.getSalt(16);
 		hmacSalts.put(sender, hmacSalt);
 		pubkeyHash.put(sender, senderKey.getKeyHash());
@@ -164,7 +163,6 @@ public class ChatClient {
 	
 	public void handleUnreads() {
 		for (String s: networkHandle.getAndClearMessages()) {
-			System.out.println("HANDLING> " + s);
 			String rawData = new String(Base64.getDecoder().decode(s.trim()));
 			String[] packet = rawData.split(" ");
 			if (packet[0].contentEquals("INIT")) {
@@ -184,7 +182,7 @@ public class ChatClient {
 				unreadToMe.put(from, msgs);*/
 				if (secretStore.containsKey(from)) {
 					String content = msgForUser.getMsgContent(secretStore.get(from));
-					System.out.println(networkHandle.getUsername(from) + "> " + content);
+					System.out.println(getUsername(from) + "> " + content);
 				}
 				else {
 					System.out.println("Message from " + from.toString() + " that we are unable to decrypt.");
@@ -221,6 +219,20 @@ public class ChatClient {
 	 */
 	public boolean hasSession(UUID other) {
 		return secretStore.containsKey(other);
+	}
+	
+	public String getUsername(UUID who) {
+		if (nameLookup.containsKey(who)) {
+			return nameLookup.get(who);
+		}
+		else {
+			String name = networkHandle.getUsername(who);
+			if (!(name.contentEquals("null") || name.contentEquals("error."))){
+				//Name is someone's actual name, so cache.
+				nameLookup.put(who, name);
+			}
+			return name;
+		}
 	}
 	
 }
