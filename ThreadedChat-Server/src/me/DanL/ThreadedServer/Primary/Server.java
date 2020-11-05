@@ -4,14 +4,12 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.UUID;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import me.DanL.ThreadedServer.UserManagement.Authenticator;
 
@@ -21,7 +19,7 @@ public class Server {
 	private static File msgSaveFile;
 
 	//We were getting some exceedingly odd issues with messages being lost to the aether despite being supposedly received, so this may help.
-	private static Map<UUID, List<String>> userMsgs = Collections.synchronizedMap(new HashMap<UUID, List<String>>());
+	private static ConcurrentHashMap<UUID, List<String>> userMsgs = new ConcurrentHashMap<UUID, List<String>>();
 	
 	private static boolean printLogs = false;
 	
@@ -98,7 +96,7 @@ public class Server {
 	 */
 	public static void addPendingMsg(UUID toWho, String msg) {
 		synchronized(userMsgs) {
-			System.out.println("Started adding message...");
+			//System.out.println("Started adding message...");
 			List<String> msgList = userMsgs.getOrDefault(toWho, new ArrayList<String>());
 			msgList.add(msg);
 			userMsgs.put(toWho, msgList);
@@ -107,7 +105,7 @@ public class Server {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			System.out.println("Ended adding messages...");
+			//System.out.println("Ended adding messages...");
 		} //Lock needed for whole operation to prevent weird things from happening.
 	}
 	
@@ -118,7 +116,7 @@ public class Server {
 	 */
 	public static List<String> getAndClearMsgs(UUID toWho){
 		synchronized(userMsgs) {
-			System.out.println("Started getting messages...");
+			//System.out.println("Started getting messages...");
 			List<String> removed = userMsgs.remove(toWho);
 			try {
 				savePendingMsgs();
@@ -126,7 +124,7 @@ public class Server {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-			System.out.println("Ended getting messages...");
+			//System.out.println("Ended getting messages...");
 			return removed;
 		}
 	}

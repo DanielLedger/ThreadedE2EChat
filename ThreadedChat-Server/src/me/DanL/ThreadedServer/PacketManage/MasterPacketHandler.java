@@ -159,6 +159,7 @@ public class MasterPacketHandler implements DataReceiver {
 			String[] sp = msgRaw.split(" ");
 			UUID target = UUID.fromString(sp[1]);
 			String sent = sp[0];
+			System.out.println("RECV.> " + sent);
 			Server.addPendingMsg(target, sent);
 		}
 		catch (IllegalArgumentException e) {
@@ -180,8 +181,8 @@ public class MasterPacketHandler implements DataReceiver {
 		for (String msg: pendingForClient) {
 			sendStr += "MSG " + msg + ";";
 		}
-		System.out.println(sendStr);
-		Connection.send(s, "LENGTH " + sendStr.length() + "\n");
+		System.out.println("SEND> " + sendStr); //Messages are lost at some point between here... 
+		//Connection.send(s, "LENGTH " + sendStr.length() + "\n"); //Ditching length packet altogether.
 		Connection.send(s, sendStr);
 	}
 

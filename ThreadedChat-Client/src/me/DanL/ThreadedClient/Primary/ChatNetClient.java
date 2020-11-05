@@ -13,6 +13,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import me.DanL.E2EChat.CryptoUtils.AES;
 import me.DanL.E2EChat.CryptoUtils.BinaryUtils;
@@ -37,7 +38,7 @@ public class ChatNetClient {
 	/**
 	 * Not just literal messages, also control messages.
 	 */
-	private volatile ArrayList<String> messages = new ArrayList<String>(); //Volatile because the program requires multiple threads.
+	private volatile ConcurrentLinkedQueue<String> messages = new ConcurrentLinkedQueue<String>(); //Volatile because the program requires multiple threads.
 	
 	/**
 	 * Initialises the client that talks to the server.
@@ -231,12 +232,15 @@ public class ChatNetClient {
 	 */
 	public void getUnreadMessages() throws IOException {
 		String packet = "MESSAGES " + packetNumber + " " + signPayload("") + " " + clientUid.toString();
+		int bufferLen = 16776960; //16MB recv. buffer
 		Socket s = new Socket(srvIp, srvPort);
 		Connection.send(s, packet);
-		String len = new String(Connection.readDat(s, 1024)); //This message says how long the second message is.
+		/*String len = new String(Connection.readDat(s, 1024)); //This message says how long the second message is.
 		int bufferLen = 0;
+		System.out.println(len); //Our problem was really quite simple: part of the message packet was getting rammed onto this packet.
+		String[] lenParts = len.split("\n");
 		try {
-			bufferLen = Integer.parseInt(len.replace("\n", "").split(" ")[1]);
+			bufferLen = Integer.parseInt(lenParts[0].split(" ")[1]);
 		}
 		catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
 			return; //Invalid
@@ -245,12 +249,25 @@ public class ChatNetClient {
 			//No new messages
 			return;
 		}
+		String messageList;
+		if (lenParts.length > 1) {
+			messageList = lenParts[1] + new String(Connection.readDat(s, bufferLen));
+		}
+		else {
+			messageList = new String(Connection.readDat(s, bufferLen));
+		}*/
 		String messageList = new String(Connection.readDat(s, bufferLen));
+		if (messageList.startsWith("LENGTH 0")) {
+			return; //Nothing here.
+		}
+		System.out.println("RAW> " + messageList); //And here.
 		//The messages are essentially semicolon separated lists of messages, so we can just split and add.
-		String[] msgs = messageList.replace("MSG", "").split(";");
-		for (String msg: msgs) {
-			System.out.println(msg);
-			messages.add(msg);
+		synchronized (messages) { //Might fix the weird as hell race condition we seem to get repeatedly.
+			String[] msgs = messageList.replace("MSG", "").split(";");
+			for (String msg: msgs) {
+				System.out.println("MSG> " + msg);
+				messages.add(msg);
+			}
 		}
 	}
 	
@@ -263,10 +280,12 @@ public class ChatNetClient {
 	 * @return
 	 */
 	public ArrayList<String> getAndClearMessages(){
-		@SuppressWarnings("unchecked")
-		ArrayList<String> bufferRet = (ArrayList<String>) messages.clone();
-		messages.clear();
-		return bufferRet;
+		synchronized (messages) {
+			ArrayList<String> bufferRet = new ArrayList<String>();
+			bufferRet.addAll(messages); //This may take a bloody long time (relatively speaking)
+			messages.clear();
+			return bufferRet;
+		}
 	}
 	
 	public void retLoop() {

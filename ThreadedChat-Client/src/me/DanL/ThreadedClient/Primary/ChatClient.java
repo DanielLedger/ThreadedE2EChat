@@ -164,7 +164,7 @@ public class ChatClient {
 	
 	public void handleUnreads() {
 		for (String s: networkHandle.getAndClearMessages()) {
-			System.out.println(s);
+			System.out.println("HANDLING> " + s);
 			String rawData = new String(Base64.getDecoder().decode(s.trim()));
 			String[] packet = rawData.split(" ");
 			if (packet[0].contentEquals("INIT")) {

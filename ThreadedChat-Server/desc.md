@@ -49,7 +49,6 @@ Server: `PKEY <public key>`
 
 ###### Check for messages (cryptography control and normal)
 Client: `MESSAGES <packet num> <token> <user id>`
-Server: `LENGTH <incoming blob length>`
 Server: `MSG <payload>; MSG <payload>;...`
 
 ###### Send message to user (cryptography control and normal)
