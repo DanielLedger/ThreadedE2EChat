@@ -178,7 +178,7 @@ public class ChatClient {
 			else if (packet[0].contentEquals("MSG")) {
 				Message msgForUser = new Message(packet[1]);
 				UUID from = UUID.fromString(packet[2]);
-				ArrayList<Message> msgs = unreadToMe.get(from);
+				ArrayList<Message> msgs = unreadToMe.getOrDefault(from, new ArrayList<Message>());
 				msgs.add(msgForUser);
 				unreadToMe.put(from, msgs);
 			}
@@ -243,7 +243,13 @@ public class ChatClient {
 	 * @return - A list of messages.
 	 */
 	public List<Message> getUnreadFrom(UUID who){
-		return unreadToMe.getOrDefault(who, new ArrayList<Message>());
+		if (!unreadToMe.containsKey(who)) {
+			return new ArrayList<Message>();
+		}
+		else {
+			return unreadToMe.remove(who);
+		}
+		
 	}
 	
 	/**
@@ -286,4 +292,13 @@ public class ChatClient {
 		return false;
 	}
 	
+	/**
+	 * Decrypts a message
+	 * @param m - The message to decrypt.
+	 * @param from - The user the message was from.
+	 * @return - The message, decrypted.
+	 */
+	public String decryptMessage(Message m, UUID from) {
+		return m.getMsgContent(secretStore.get(from));
+	}
 }

@@ -17,10 +17,12 @@ public class MasterPacketHandler implements DataReceiver {
 
 	@Override
 	public void getData(Socket source, String data) {
-		Server.debugOutput("Got packet: " + data);
+		//Server.debugOutput("Got packet: " + data);
 		PacketParser parsedPacket = new PacketParser(data);
-		Server.debugOutput("Packet parse result:");
-		Server.debugOutput(parsedPacket.toString());
+		if (parsedPacket.getType() != PacketType.MESSAGES) {
+			Server.debugOutput("Packet parse result:");
+			Server.debugOutput(parsedPacket.toString());
+		}
 		if (!parsedPacket.isAuthenticated()) { //Authenticated packets are implicitly valid.
 			//The packet isn't valid, so reject it silently.
 			Server.debugOutput("Unauthenticated packet, rejecting...");

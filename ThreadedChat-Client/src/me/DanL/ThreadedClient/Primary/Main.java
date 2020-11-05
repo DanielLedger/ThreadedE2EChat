@@ -20,6 +20,28 @@ public class Main {
 	 */
 	private static boolean threadsDie = false;
 	
+	/**
+	 * Read a number from console. Keeps asking until a number is entered.
+	 * @param prompt - The message to send to the user.
+	 * @param err - The message to send if a not-number is entered.
+	 * @return - The number the user entered.
+	 */
+	public static int getNumber(String prompt, String err) {
+		System.out.print(prompt);
+		Console c = System.console();
+		int resp;
+		while (true) {
+			try {
+				resp = Integer.parseInt(c.readLine());
+				break;
+			}
+			catch (NumberFormatException e) {
+				System.out.println(err);
+			}
+		}
+		return resp;
+	}
+	
 	public static void main(String[] args) throws IOException {
 		//First off, see if we have an info file
 		File infoFile = new File("clientinfo.txt");
@@ -78,12 +100,15 @@ public class Main {
 			System.out.println("Password incorrect! Program terminating...");
 			System.exit(1);
 		}
+		System.out.print("Enter the IP you will be connecting to> ");
+		String ip = c.readLine();
+		int port = Main.getNumber("Enter the port you will be connecting to> ", "That's not a number!");
 		//Finally, initialise the ChatNetworkClient
-		cnc.init("localhost", 4444, clientUid, name);
-		DownloadLoop dl = new DownloadLoop(cnc);
+		cnc.init(ip, port, clientUid, name);
+		ChatClient cc = new ChatClient(masterKey, new File("userdata.csv"), cnc);
+		DownloadLoop dl = new DownloadLoop(cc);
 		Thread t = new Thread(dl);
 		t.start();
-		ChatClient cc = new ChatClient(masterKey, new File("userdata.csv"), cnc);
 		/*
 		System.out.print("Enter a UUID to send a message to, or enter to receive messages.> ");
 		String add = c.readLine();
@@ -114,15 +139,18 @@ public class Main {
 	private static class DownloadLoop implements Runnable{
 
 		
-		private ChatNetClient chatNetworker;
+		private ChatClient chatHandle;
 		
-		DownloadLoop(ChatNetClient chatNet){
-			chatNetworker = chatNet;
+		DownloadLoop(ChatClient chatNet){
+			chatHandle = chatNet;
 		}
 		
 		@Override
 		public void run() {
-			chatNetworker.retLoop();
+			while (!Main.threadsDie) {
+				chatHandle.networkHandle.retLoop();
+				chatHandle.handleUnreads();
+			}
 		}
 	}
 	

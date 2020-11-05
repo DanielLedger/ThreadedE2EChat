@@ -1,8 +1,12 @@
 package me.DanL.ThreadedClient.Primary;
 
 import java.io.Console;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import me.DanL.E2EChat.CryptoUtils.HMACUtils;
 
@@ -18,27 +22,7 @@ public class ChatUI {
 	
 	private String ourName;
 	
-	/**
-	 * Read a number from console. Keeps asking until a number is entered.
-	 * @param prompt - The message to send to the user.
-	 * @param err - The message to send if a not-number is entered.
-	 * @return - The number the user entered.
-	 */
-	private int getNumber(String prompt, String err) {
-		System.out.print(prompt);
-		Console c = System.console();
-		int resp;
-		while (true) {
-			try {
-				resp = Integer.parseInt(c.readLine());
-				break;
-			}
-			catch (NumberFormatException e) {
-				System.out.println(err);
-			}
-		}
-		return resp;
-	}
+	
 	
 	public ChatUI(ChatClient handler, String name, UUID uid) {
 		cc = handler;
@@ -65,7 +49,7 @@ public class ChatUI {
 			System.out.println(offsetCtr + ") View " + personName + ".");
 			offsetCtr++;
 		}
-		int choiceI = getNumber("Enter your choice> ", "Invalid option!");
+		int choiceI = Main.getNumber("Enter your choice> ", "Invalid option!");
 		if (choiceI <= 0) {
 			return true;
 		}
@@ -91,7 +75,17 @@ public class ChatUI {
 	 * Screen for adding someone new to chat to.
 	 */
 	private void newPersonScreen() {
-		System.out.println("Adding a new person...");
+		System.out.print("Enter the UUID of the person you want to add> ");
+		String uuidStr = System.console().readLine();
+		try {
+			UUID person = UUID.fromString(uuidStr);
+			cc.addUser(person, false);
+		}
+		catch (IllegalArgumentException e) {
+			System.out.println("Invalid UUID!");
+		} catch (IOException e) {
+			System.out.println("Communication to the server failed!");
+		}
 	}
 	
 	/**
@@ -108,7 +102,24 @@ public class ChatUI {
 	 */
 	private void viewUserScreen(UUID who) {
 		System.out.println("Viewing " + who.toString());
-		verifyUser(who);
+		while (true) {
+			System.out.println("0) Back");
+			System.out.println("1) View chat");
+			System.out.println("2) Verify keys");
+			int choice = Main.getNumber("Enter your choice> ", "Invalid choice!");
+			if (choice == 0) {
+				break;
+			}
+			else if (choice == 1) {
+				displayChat(who);
+			}
+			else if (choice == 2) {
+				verifyUser(who);
+			}
+			else {
+				System.out.println("Invalid choice!");
+			}
+		}
 	}
 	
 	/**
@@ -125,13 +136,77 @@ public class ChatUI {
 		System.out.println("You should check at least 2 numbers, 5 if you feel paranoid.");
 		int verifNum;
 		do {
-			verifNum = getNumber("Enter the UUID number you want to view, or -1 to quit: ", "That's not a number!");
+			verifNum = Main.getNumber("Enter the UUID number you want to view, or -1 to quit: ", "That's not a number!");
 			byte[] asBytes = Integer.toString(verifNum).getBytes();
 			byte[] summedDat = HMACUtils.hmac(keyHash, asBytes);
 			UUID outputUid = UUID.nameUUIDFromBytes(summedDat);
 			System.out.println("When N=" + verifNum + ", UUID=" + outputUid.toString());
 		}
 		while (verifNum >= 0);
+	}
+	
+	/**
+	 * Shows the chat for a user.
+	 * @param who - The user we are chatting to.
+	 */
+	private void displayChat(UUID who) {
+		Lock l = new ReentrantLock(); //When we want to kill the message output thread, we lock this lock, which it will then detect and terminate.
+		System.out.println("---CHAT WITH " + cc.getUsername(who) + "---");
+		System.out.println("Type any message and hit ENTER to send. Typing /back will take you to the previous window.");
+		MessageDisplay md = new MessageDisplay(l, who);
+		Thread displayThread = new Thread(md);
+		//Start the display thread first
+		displayThread.start();
+		//Now, we get to our input bit.
+		while (true) {
+			String inp = System.console().readLine();
+			if (inp.contentEquals("/back")) {
+				l.lock(); //This should cause the other thread to kill itself.
+				break; 
+			}
+			else {
+				try {
+					cc.sendMsg(inp, who);
+					//System.out.println("ME> " + inp);
+				} catch (IOException e) {
+					System.out.println("SYSTEM> The message could not be delivered. Are you sure you're connected to a server?");
+				}
+			}
+		}
+	}
+	
+	private class MessageDisplay implements Runnable{
+
+		private Lock terminate;
+		
+		private UUID personPrintingFor;
+		
+		private String personName;
+		
+		MessageDisplay(Lock control, UUID who){
+			terminate = control;
+			personPrintingFor = who;
+			personName = cc.getUsername(who);
+		}
+		
+		@Override
+		public void run() {
+			while (terminate.tryLock()) {
+				terminate.unlock(); //Don't actually hold the lock.
+				try {
+					Thread.sleep(1100);
+				} catch (InterruptedException e) {
+					//???
+				}
+				List<Message> unread = cc.getUnreadFrom(personPrintingFor);
+				if (unread == null) {continue;}
+				for (Message m: unread) {
+					String content = cc.decryptMessage(m, personPrintingFor);
+					System.out.println(personName + "> " + content);
+				}
+			}
+		}
+		
 	}
 	
 }
